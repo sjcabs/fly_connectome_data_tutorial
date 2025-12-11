@@ -270,3 +270,7 @@ CLAUDE.md
 *.RDataTmp
 *.Rproj
 
+# feather
+*.feather
+
+
