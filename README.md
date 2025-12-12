@@ -1,6 +1,6 @@
 # Fly Connectome Data Tutorial
 
-Tutorial materials for working with Drosophila connectome datasets at the [Winter School on Computational Approaches in Biological Sciences (SJCABS)](https://sjcabs.com/).
+Tutorial materials for working with Drosophila connectome datasets at the [Winter School on Computational Approaches in Biological Sciences (SJCABS)](https://sjcabs.com/). We will work with all the major, dense connectome datasets of 2025.
 
 **Instructors:** Sven Dorkenwald & Alexander Bates
 
@@ -10,44 +10,44 @@ This tutorial provides foundational skills for loading, analyzing, and visualizi
 
 ## Connectome Datasets
 
-We focus primarily on two FlyWire datasets—**BANC** and **FAFB**—while also providing access to MANC, Hemibrain, and Male CNS. All datasets have been harmonized to use a unified metadata schema, enabling cross-dataset comparisons.
+We focus primarily on two FlyWire datasets—**BANC** and **FAFB**—while also providing access to MANC, Hemibrain, and Male CNS. All datasets have been harmonized to use the unified metadata schema we used in the **BANC** project, enabling cross-dataset comparisons. Possible metadata entries given here: [data/meta_data_entries](data/meta_data_entries.csv).
 
 ### BANC (Brain and Nerve Cord)
 **Primary dataset for this tutorial**
 
-The first synapse-resolution connectome spanning the entire adult Drosophila central nervous system—both brain and ventral nerve cord. Contains ~114,000 neurons with ~108 million synaptic connections.
+The first synapse-resolution connectome spanning the both brain and ventral nerve cord. Contains ~114,000 neurons with ~108 million synaptic connections. A female fly. Missing first optic relay, the lamina and retina.
 
 - **Explore:** [Codex](https://codex.flywire.ai/?dataset=banc)
 - **Publication:** [Eckstein et al. (2025)](https://pubmed.ncbi.nlm.nih.gov/40766407/) bioRxiv
 - **Documentation:** [data/dataset_documentation/banc_data.md](data/dataset_documentation/banc_data.md)
 
+### Male CNS (Central Nervous System)
+Complete male CNS connectome with 166,691 neurons spanning brain and ventral nerve cord. Includes fruitless and doublesex expression data for studying sex-specific circuits. A male fly. No retina.
+
+- **Explore:** [Codex](https://codex.flywire.ai/?dataset=mcns) | [neuPrint](https://neuprint.janelia.org/?dataset=male-cns:v0.9)
+- **Publication:** [bioRxiv preprint (2025)](https://www.biorxiv.org/content/10.1101/2025.10.09.680999v1)
+- **Documentation:** [data/dataset_documentation/malecns_data.md](data/dataset_documentation/malecns_data.md)
+
 ### FAFB (Full Adult Fly Brain)
-Complete adult female fly brain connectome via the FlyWire project. Contains ~139,000 neurons spanning all brain regions including detailed annotations of 8,453 cell types.
+Complete adult female fly brain connectome via the FlyWire project. Contains ~139,000 neurons spanning all brain regions including detailed annotations of 8,453 cell types. A female fly. No ventral nerve cord.
 
 - **Explore:** [Codex](https://codex.flywire.ai/?dataset=fafb)
 - **Publication:** [Dorkenwald et al. (2024)](https://www.nature.com/articles/s41586-024-07686-5) Nature; [Schlegel et al. (2024)](https://www.nature.com/articles/s41586-024-07686-5) Nature
 - **Documentation:** [data/dataset_documentation/fafb_data.md](data/dataset_documentation/fafb_data.md)
 
 ### MANC (Male Adult Nerve Cord)
-First complete nerve cord connectome with ~23,000 neurons. Focuses on how descending commands from the brain transform into motor behaviors.
+First complete nerve cord connectome with ~23,000 neurons. A male fly. No brain.
 
 - **Explore:** [neuPrint](https://neuprint.janelia.org/?dataset=manc)
 - **Publication:** [Takemura et al. (2024)](https://elifesciences.org/reviewed-preprints/97769) eLife
 - **Documentation:** [data/dataset_documentation/manc_data.md](data/dataset_documentation/manc_data.md)
 
 ### Hemibrain
-Dense reconstruction of approximately half the central brain (~25,000 neurons). Includes mushroom body learning circuits and central complex navigation circuits.
+Dense reconstruction of approximately half the central brain (~25,000 neurons). Includes mushroom body learning circuits and central complex navigation circuits. A female fly. No ventral nerve cord.
 
 - **Explore:** [neuPrint](https://neuprint.janelia.org/?dataset=hemibrain:v1.2.1)
 - **Publication:** [Scheffer et al. (2020)](https://elifesciences.org/articles/57443) eLife
 - **Documentation:** [data/dataset_documentation/hemibrain_data.md](data/dataset_documentation/hemibrain_data.md)
-
-### Male CNS (Central Nervous System)
-Complete male CNS connectome with 166,691 neurons spanning brain and VNC. Includes fruitless and doublesex expression data for studying sex-specific circuits.
-
-- **Explore:** [Codex](https://codex.flywire.ai/?dataset=mcns) | [neuPrint](https://neuprint.janelia.org/?dataset=male-cns:v0.9)
-- **Publication:** [bioRxiv preprint (2025)](https://www.biorxiv.org/content/10.1101/2025.10.09.680999v1)
-- **Documentation:** [data/dataset_documentation/malecns_data.md](data/dataset_documentation/malecns_data.md)
 
 ---
 
@@ -114,26 +114,30 @@ We provide curated subsets focusing on specific circuits:
 
 ## Tutorial Path
 
-This tutorial follows a progressive learning path:
+This tutorial follows a progressive learning path. It is designed to take about 2 hours. 
 
-### 1. Neuronal Morphology
+### 1. Data access
+- Find and read our data files, which are stored as .zip or .feather
+- Test you can do this across multiple datasets.
+
+### 2. Neuronal Morphology
 - Load and visualize 3D neuron skeletons
 - Transform coordinates between native dataset spaces and BANC space
 - Understand morphological features (dendrites, axons, branch points)
 
-### 2. Synapse Analysis
+### 3. Synapse Analysis
 - Load and map individual synapse locations
 - Visualize synaptic distributions along neurites
 - Determine axon/dendrite compartments using flow centrality ([navis](https://navis.readthedocs.io/en/latest/source/tutorials/morph_analysis.html) | [natverse](http://natverse.org/nat/reference/flow.centrality.html) implementations)
 - Analyze neurotransmitter predictions per synapse
 
-### 3. Connectivity Networks
+### 4. Connectivity Networks
 - Load and query edgelists (connectivity matrices)
 - Build and visualize network graphs
 - Calculate network properties (hubs, modules, motifs)
 - Identify pathways between neuron populations
 
-### 4. Influence Quantification
+### 5. Influence Quantification
 - Calculate influence scores from sensory neurons to effector neurons
 - Understand multi-hop indirect influences through network paths
 - Compare influence patterns across datasets
@@ -157,7 +161,7 @@ If you use these datasets in your work, please cite the original publications:
 
 **BANC:** Bates, A.S., Phelps, J.S., Kim, M., Yang, H.H., Matsliah, A., Ajabi, Z., Perlman, E., et al. (2025). Distributed control circuits across a brain-and-cord connectome. *bioRxiv*, 2025.07.31.667571. https://doi.org/10.1101/2025.07.31.667571
 
-**FAFB:** Dorkenwald, S., Matsliah, A., Sterling, A.R., Schlegel, P., ... Bates, A.S., ... et al. (2024). Neuronal wiring diagram of an adult brain. *Nature*, 634(8032), 124-138. https://doi.org/10.1038/s41586-024-07686-5
+**FAFB (proofreading):** Dorkenwald, S., Matsliah, A., Sterling, A.R., Schlegel, P., ... Bates, A.S., ... et al. (2024). Neuronal wiring diagram of an adult brain. *Nature*, 634(8032), 124-138. https://doi.org/10.1038/s41586-024-07686-5
 
 **FAFB (annotations):** Schlegel, P., Yin, Y., Bates, A.S., Dorkenwald, S., Eichler, K., Brooks, P., Han, D.S., et al. (2024). Whole-brain annotation and multi-connectome cell typing of Drosophila. *Nature*, 634(8032), 139-152. https://doi.org/10.1038/s41586-024-07686-5
 
@@ -166,6 +170,8 @@ If you use these datasets in your work, please cite the original publications:
 **Hemibrain:** Scheffer, L.K., Xu, C., Januszewski, M., Lu, Z., Takemura, S.Y., Bates, A.S., et al. (2020). A connectome and analysis of the adult Drosophila central brain. *eLife*, 9, e57443. https://doi.org/10.7554/eLife.57443
 
 **Male CNS:** Berg, S., Beckett, I.R., Costa, M., Schlegel, P., Januszewski, M., Marin, E.C., Bates, A.S., et al. (2025). Sexual dimorphism in the complete connectome of the Drosophila male central nervous system. *bioRxiv*, 2025.10.09.680999. https://doi.org/10.1101/2025.10.09.680999
+
+**Neurotransmitter Predictions:** Eckstein and Bates et al.
 
 ---
 
