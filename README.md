@@ -176,8 +176,16 @@ This tutorial follows a progressive learning path. It is designed to take about 
 
 1. **Download data** from the Google Drive folder for the dataset(s) you want to work with
 2. **Install analysis tools:**
-   - Python: `pip install navis fafbseg`
-   - R: `install.packages("natmanager"); natmanager::install(pkgs = "core")`
+   - **Python:** `pip install navis fafbseg`
+   - **R:**
+     ```r
+     install.packages("natmanager")
+     natmanager::install(pkgs = "core")
+
+     # Install Python dependencies for fafbseg
+     library(fafbseg)
+     simple_python()
+     ```
 3. **Open the first tutorial** in `tutorials/python/` or `tutorials/R/`
 
 ---
