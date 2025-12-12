@@ -13,8 +13,13 @@ sjcabs_data/
 │   ├── fafb_783_synapses.feather 
 │   ├── fafb_783_dcv_soma.feather 
 │   ├── fafb_783_dcv_cell.feather 
-│   └── fafb_783_skeletons_in_banc_space.zip
-│   └── fafb_783_skeletons_in_fafb_space.zip            
+│   ├── fafb_783_skeletons_in_banc_space.zip
+│   ├── fafb_783_skeletons_in_fafb_space.zip
+│   ├── antennal_lobe/ * data subset for olfactory circuits of the anennal lobe
+│   ├── central_complex/ * data subset for navigation circuits of the central complex
+│   ├── mushroom_body/ * data subset for associative memory circuits of the mushroom body
+│   ├── optic/ * data subset for associative memory circuits of the optic lobe
+│   └── suboesophageal_zone/ * data subset for tactile and feeding circuits of the lower brain  
 └── ...
 ```
 

@@ -11,8 +11,10 @@ sjcabs_data/
 │   ├── manc_121_edgelist_simple.feather     
 │   ├── manc_121_edgelist.feather 
 │   ├── manc_121_synapses.feather 
-│   └── manc_121_skeletons_in_banc_space.zip  
-│   └── manc_121_skeletons_in_manc_space.zip      
+│   ├── manc_121_skeletons_in_banc_space.zip  
+│   ├── manc_121_skeletons_in_manc_space.zip
+│   ├── abdominal_neuromere/ * data subset for abdominal control circuits
+│   └── front_leg/ * data subset for control of the front leg
 └── ...
 ```
 

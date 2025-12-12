@@ -11,8 +11,11 @@ sjcabs_data/
 │   ├── hemibrain_121_edgelist_simple.feather     
 │   ├── hemibrain_121_edgelist.feather 
 │   ├── hemibrain_121_synapses.feather 
-│   └── hemibrain_121_skeletons_in_banc_space.zip  
-│   └── hemibrain_121_skeletons_in_hemibrain_space.zip      
+│   ├── hemibrain_121_skeletons_in_banc_space.zip  
+│   ├── hemibrain_121_skeletons_in_hemibrain_space.zip
+│   ├── antennal_lobe/ * data subset for olfactory circuits of the anennal lobe
+│   ├── central_complex/ * data subset for navigation circuits of the central complex
+│   └── mushroom_body/ * data subset for associative memory circuits of the mushroom body
 └── ...
 ```
 

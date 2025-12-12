@@ -10,7 +10,14 @@ sjcabs_data/
 │   ├── banc_746_meta.feather     
 │   ├── banc_746_edgelist_simple.feather     
 │   ├── banc_746_synapses.feather 
-│   └── banc_746_skeletons_in_banc_space.zip      
+│   ├── banc_746_skeletons_in_banc_space.zip
+│   ├── abdominal_neuromere/ * data subset for abdominal control circuits
+│   ├── antennal_lobe/ * data subset for olfactory circuits of the anennal lobe
+│   ├── central_complex/ * data subset for navigation circuits of the central complex
+│   ├── front_leg/ * data subset for control of the front leg
+│   ├── mushroom_body/ * data subset for associative memory circuits of the mushroom body
+│   ├── optic/ * data subset for associative memory circuits of the optic lobe
+│   └── suboesophageal_zone/ * data subset for tactile and feeding circuits of the lower brain
 └── ...
 ```
 
