@@ -174,6 +174,11 @@ This tutorial follows a progressive learning path. It is designed to take about 
 
 ## Getting Started
 
+If running in the cloud:
+   **INSERT**
+   
+If running locally:
+
 1. **Download data** from the Google Drive folder for the dataset(s) you want to work with
 2. **Install analysis tools:**
    - **Python:** `pip install navis fafbseg`
