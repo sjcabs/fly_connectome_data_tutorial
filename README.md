@@ -95,7 +95,19 @@ Analysis tools:
 
 ## Data Organization
 
-All processed data is hosted on Google Drive: **[Access Data](https://drive.google.com/drive/folders/1SAgRBc4jQ-WGuhFStyihg3ov_jDauH5001)**
+All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/sjcabs_2025_data)**
+
+You can browse and download files directly from the browser, or use command-line tools:
+```bash
+# List available datasets
+gsutil ls gs://sjcabs_2025_data/
+
+# Download a specific file
+gsutil cp gs://sjcabs_2025_data/path/to/file .
+
+# Download an entire folder
+gsutil -m cp -r gs://sjcabs_2025_data/folder_name .
+```
 
 ### Example Structure (BANC)
 ```
@@ -174,7 +186,7 @@ This tutorial follows a progressive learning path. It is designed to take about 
 
 ## Getting Started
 
-1. **Download data** from the Google Drive folder for the dataset(s) you want to work with
+1. **Download data** from the [Google Cloud Storage bucket](https://console.cloud.google.com/storage/browser/sjcabs_2025_data) for the dataset(s) you want to work with
 2. **Install analysis tools:**
    - **Python:** `pip install navis fafbseg`
    - **R:**
