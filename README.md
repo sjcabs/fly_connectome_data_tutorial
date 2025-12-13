@@ -4,7 +4,7 @@ Tutorial materials for working with Drosophila connectome datasets at the [Winte
 
 **Instructors:** Sven Dorkenwald & Alexander Bates
 
-This tutorial provides foundational skills for loading, analyzing, and visualizing connectome data that will be used throughout the workshop. You'll learn to work with neuronal morphologies, synaptic connectivity, and network analysis across multiple fly brain and nerve cord datasets.
+This tutorial provides foundational skills for loading, analysing, and visualising connectome data that will be used throughout the workshop. You'll learn to work with neuronal morphologies, synaptic connectivity, and network analysis across multiple fly brain and nerve cord datasets.
 
 ---
 
@@ -12,7 +12,7 @@ This tutorial provides foundational skills for loading, analyzing, and visualizi
 
 - [Connectome Datasets](#connectome-datasets) - BANC, Male CNS, FAFB, MANC, Hemibrain
 - [Analysis Tools](#analysis-tools) - Python and R packages with installation guides
-- [Data Organization](#data-organization) - Google Drive structure and file types
+- [Data Organisation](#data-organisation) - Google Drive structure and file types
 - [Tutorial Path](#tutorial-path) - What you'll learn (2 hours)
 - [Getting Started](#getting-started) - Installation and first steps
 - [Citation](#citation) - How to cite these datasets
@@ -67,8 +67,8 @@ Dense reconstruction of approximately half the central brain (~25,000 neurons). 
 ### Python
 **Installation guide:** [Setting up Python for connectomics](https://navis-org.github.io/neuropython2024/preparing/)
 
-- **[navis](https://navis.readthedocs.io/)** - Neuron analysis and visualization (works with all datasets)
-- **[skeletor](https://github.com/navis-org/skeletor)** - Mesh skeletonization
+- **[navis](https://navis.readthedocs.io/)** - Neuron analysis and visualisation (works with all datasets)
+- **[skeletor](https://github.com/navis-org/skeletor)** - Mesh skeletonisation
 - **[fafbseg-py](https://github.com/navis-org/fafbseg-py)** - FlyWire/FAFB-specific tools
 - **[navis-flybrains](https://github.com/navis-org/navis-flybrains)** - Coordinate transforms and template brains
 - **[Influence score calculator](https://zenodo.org/records/17693838)** - Quantify influence between sensory and effector neurons
@@ -93,20 +93,20 @@ Analysis tools:
 
 ---
 
-## Data Organization
+## Data Organisation
 
-All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/sjcabs_2025_data)**
+All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data)**
 
 You can browse and download files directly from the browser, or use command-line tools:
 ```bash
 # List available datasets
-gsutil ls gs://sjcabs_2025_data/
+gsutil ls gs://brain-and-nerve-cord_exports/sjcabs_data/
 
 # Download a specific file
-gsutil cp gs://sjcabs_2025_data/path/to/file .
+gsutil cp gs://brain-and-nerve-cord_exports/sjcabs_data/path/to/file .
 
 # Download an entire folder
-gsutil -m cp -r gs://sjcabs_2025_data/folder_name .
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/sjcabs_data/folder_name .
 ```
 
 ### Example Structure (BANC)
@@ -137,17 +137,73 @@ See individual dataset documentation files in [`data/dataset_documentation/`](da
 
 We provide curated subsets focusing on specific circuits:
 
-- **Antennal Lobe**: Primary olfactory processing center receiving input from olfactory receptor neurons and projecting to higher brain regions via projection neurons. Critical for odor discrimination and learning.
+- **Antennal Lobe**: Primary olfactory processing centre receiving input from olfactory receptor neurons and projecting to higher brain regions via projection neurons. Critical for odour discrimination and learning.
 
-- **Central Complex**: Navigation circuits for spatial orientation, motor control, and goal-directed behavior. Contains ring neurons encoding heading direction and columnar neurons for path integration.
+- **Central Complex**: Navigation circuits for spatial orientation, motor control, and goal-directed behaviour. Contains ring neurons encoding heading direction and columnar neurons for path integration.
 
 - **Mushroom Body**: Associative learning and memory circuits. Kenyon cells integrate sensory information and form associations with dopaminergic reinforcement signals.
 
-- **Optic Lobe**: Visual processing through lamina (motion detection), medulla (color and contrast), and lobula (object recognition). Includes both retinotopic local circuits and wide-field integration neurons.
+- **Optic Lobe**: Visual processing through lamina (motion detection), medulla (colour and contrast), and lobula (object recognition). Includes both retinotopic local circuits and wide-field integration neurons.
 
 - **Suboesophageal Zone**: Lower brain region controlling feeding, grooming, and processing gustatory/tactile information from mouthparts and antennae.
 
 - **Front Leg / Abdominal Neuromere**: Motor control circuits coordinating limb movements and postural adjustments through local sensory feedback and descending command signals.
+
+---
+
+## Detailed Data Inventory
+
+### BANC (Brain and Nerve Cord)
+**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/banc)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/banc/`
+
+- [`banc_746_meta.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_meta.feather) (0.01 GB) - Metadata
+- [`banc_746_simple_edgelist.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_simple_edgelist.feather) (4.8 GB) - Connectivity
+- [`banc_746_synapses.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.feather) (10.2 GB) - Synapses
+- [`banc_banc_space_l2_swc.zip`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_banc_space_l2_swc.zip) - Skeletons
+- **Curated subsets:** `abdominal_neuromere/`, `antennal_lobe/`, `central_complex/`, `front_leg/`, `mushroom_body/`, `optic/`, `suboesophageal_zone/`
+
+### FAFB (Full Adult Fly Brain)
+**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/fafb)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/fafb/`
+
+- `fafb_783_meta.feather` (~0.01 GB) - Metadata
+- `fafb_783_simple_edgelist.feather` (~5 GB) - Connectivity
+- `fafb_783_split_edgelist.feather` (~10 GB) - Compartment connectivity
+- `fafb_783_synapses.feather` (~12 GB) - Synapses
+- `fafb_783_banc_space_swc.zip` - Skeletons (BANC space)
+- `fafb_fafb_space_swc.zip` - Skeletons (native FAFB space)
+- **Curated subsets:** `antennal_lobe/`, `central_complex/`, `mushroom_body/`, `optic/`, `suboesophageal_zone/`
+
+### MANC (Male Adult Nerve Cord)
+**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/manc)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/manc/`
+
+- `manc_121_meta.feather` (~0.005 GB) - Metadata
+- `manc_121_simple_edgelist.feather` (~1.5 GB) - Connectivity
+- `manc_121_split_edgelist.feather` (~3 GB) - Compartment connectivity
+- `manc_121_synapses.feather` (~4 GB) - Synapses
+- `manc_banc_space_swc.zip` - Skeletons (BANC space)
+
+### Hemibrain
+**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/hemibrain)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/hemibrain/`
+
+- `hemibrain_121_meta.feather` (~0.005 GB) - Metadata
+- `hemibrain_121_simple_edgelist.feather` (~2 GB) - Connectivity
+- `hemibrain_121_split_edgelist.feather` (~4 GB) - Compartment connectivity
+- `hemibrain_121_synapses.feather` (~5 GB) - Synapses
+- `hemibrain_banc_space_swc.zip` - Skeletons (BANC space)
+- `hemibrain_hemibrain_raw_space_swc.zip` - Skeletons (native space)
+- `neuropils/`, `obj/` - Mesh data
+
+### Download Examples
+```bash
+# Small file - metadata (recommended to start)
+gsutil cp gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_meta.feather .
+
+# Curated subset - much smaller than full dataset
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/sjcabs_data/banc/antennal_lobe/ .
+
+# Large file - check size first
+gsutil ls -lh gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.feather
+```
 
 ---
 
@@ -160,19 +216,19 @@ This tutorial follows a progressive learning path. It is designed to take about 
 - Test you can do this across multiple datasets.
 
 ### 2. Neuronal Morphology
-- Load and visualize 3D neuron skeletons
+- Load and visualise 3D neuron skeletons
 - Transform coordinates between native dataset spaces and BANC space
 - Understand morphological features (dendrites, axons, branch points)
 
 ### 3. Synapse Analysis
 - Load and map individual synapse locations
-- Visualize synaptic distributions along neurites
+- Visualise synaptic distributions along neurites
 - Determine axon/dendrite compartments using flow centrality ([navis](https://navis.readthedocs.io/en/latest/source/tutorials/morph_analysis.html) | [natverse](http://natverse.org/nat/reference/flow.centrality.html) implementations)
-- Analyze neurotransmitter predictions per synapse
+- Analyse neurotransmitter predictions per synapse
 
 ### 4. Connectivity Networks
 - Load and query edgelists (connectivity matrices)
-- Build and visualize network graphs
+- Build and visualise network graphs
 - Calculate network properties (hubs, modules, motifs)
 - Identify pathways between neuron populations
 
