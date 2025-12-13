@@ -1,0 +1,154 @@
+---
+title: "02_neuron_morphology"
+author: "Alexander Bates"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Tutorial 02: Neuron morphology
+
+## Introduction
+
+The purpose of this tutorial is to examine neuron morphology. 
+
+We can visualise neurons, compare their morphological similarity with NBLAST, and plot them with their synapses.
+
+To do this, we are going to look at one of the data 'subets' we have pre-prepared. 
+
+You can change which subset and data set to examine, by changing these two variables:
+
+```
+```
+
+But by default, let us look at the front leg neuropil! 
+
+This is available for BANC, maleCNS and MANC.
+
+## Read meta data
+
+Let's start by reading the meta data for our chosen subset:
+
+```
+```
+
+Let's now plot the neuron counts we have, by their super class:
+
+```
+```
+
+That's quite a lot of neurons, but not too many.
+
+Let's make a vector of their IDs.
+
+```
+```
+
+## Read .swc file
+
+A .swc file is a format for encoding neuron 'skeleton' structure.
+
+We could work with high-resolution mesh data (not in our google bucket), but for most tasks a skeleton suffices and is faster.
+
+If you would like to see how to read in mesh data for the BANC project, which enables nice visualisations, see [here](https://flyconnectome.github.io/bancr/reference/banc_read_neuron_meshes.html).
+
+Let's just take one ID from our vector. We can read its .swc file straight from one of the .zip archives we have.
+
+We can visualise it in BANC space, or in it's native space if not a BANC neuron. For non-BANC datasets we provide two spaces, because visualising everything in BANC space assists us with co-visualisation. We will see an example of this later.
+
+For now, let's read and plot that neuron!
+
+```
+```
+
+We can also use `rgl` to show the neuron in an interactive 3D window:
+
+```
+```
+
+We can also use the `plotly` engine with the `natverse`:
+
+
+```
+```
+
+## Read synapses
+
+We can plot this neuron with its synapses.
+
+To do this, let's fetch synapses from only this neuron, from the feather file in this subset. 
+
+We only need columns `x`,`y`,`z`,`pre` and `post`. 
+
+When our neuron is `==pre` we will set a new column `prepost` to `0`, to indicate it is an output synapse.
+
+When our neuron is `==post` we will set a new column `prepost` to `1`, to indicate it is an input synapse.
+
+We can plot input synapses in navy, and output in red:
+
+```
+```
+
+## NBLAST
+
+Now that we have seen how to visualise the skeleton of one neuron, let's grab all of our neurons from this neuropil and assess how similar they are.
+
+To read, all the neurons, we can select just out subset from the `.zip` archive of all skeletons:
+
+```
+```
+
+We can now convert them from 1. nm to um, and 2. to a 'dotprops' vector cloud, and use this to run an NBLAST!
+
+```
+```
+
+Let's visualise the result as a dendrogram:
+
+```
+```
+
+Great, now let's view ~20 clusters by morphology:
+
+
+```
+```
+
+You can try playing wit the number of clusters, `k`.
+
+Cool! What do you think all of these neurons do?
+
+
+## Your Turn: Compare Datasets
+
+Now try this analysis yourself with a different dataset and/or cut out!
+
+**Exercise:** Switch to the `malecns` dataset and compare results with BANC.
+
+## Extention: axon-dendrite splits
+
+For all of our datasets, except the BANC right now, we have axon-dendrite splits that have been pre-calculated.
+
+This uses a graph theoretic algorithm from Schneider-Mizell et al. 2026 (see the paper [here]()).
+
+The method relies on the idea that information runs from input to output synapses, and determines axon versus dendrites by "cutting" the neuron at its major information bottleneck, and observing which half has more input/output.
+
+The `label` column in the underlying `.swc` files gives the compartment. 
+
+In addition, the `pre_label` and `post_label` columns in our synapse tables give compartments.
+
+Let's read in some maleCNS data, and visualise neurons
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
