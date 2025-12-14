@@ -312,7 +312,7 @@ p_nt <- ggplot(nt_counts, aes(x = neurotransmitter_predicted, y = n, fill = neur
 
 # Save and display plot
 save_plot(p_nt, "neurotransmitter_distribution")
-print(p_nt)
+ggplotly(p_nt)
 ```
 
 ## Working with Synapse Data (Parquet + Lazy Loading)
@@ -331,11 +331,15 @@ gsutil cp gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.p
 
 Then update your data_path to use local files.
 
-### Filtering Mushroom Body Synapses
+### Filtering Mushroom Body Calyx Synapses
 
 Our synapses have been roughly mapped to "neuropils", which are human-determined regions of the nervous system. These determinations are based on lumps and grooves on the surface of neural tissue and boundaries in synapse densities, but they roughly correlate with functional circuits. At least in some cases.
 
 Our brain neuropils are transformed into connectome spaces from Ito et al., 2014's demarcations at light-level, see [here](https://pubmed.ncbi.nlm.nih.gov/24559671/). See below.
+
+This means that the volumes can be slightly the wrong shape, and slightly shifted by some microns in space. As a consequence, neurons that are not actually in the canonical mushroom body calyx are caught by our search.
+
+Neuropils are simply helpful guides through the nervous systems, like countries on a map. Countries correlate with geography but if you want to understand geology, you generally ignore their human-made borders. Likewise, in connectomics, neuropils are guides that set your sites on the right location, but real answers come from connectivity, and thinking about your results.
 
 <p align="center">
   <img src="../inst/images/brain_neuropils_ito_et_al_2014.jpg" alt="Brain Neuropils from Ito et al. 2014" width="80%">
@@ -347,7 +351,11 @@ Our ventral nerve cord neuropils come from Court et al. 2020, see [here](https:/
   <img src="../inst/images/vnc_neuropils_court_et_al_2020.jpg" alt="VNC Neuropils from Court et al. 2020" width="80%">
 </p>
 
-The [mushroom body](https://en.wikipedia.org/wiki/Mushroom_bodies) (MB) is the insect brain structure for associative learning and memory. Let's extract MB synapses using [regex](https://stringr.tidyverse.org/articles/regular-expressions.html) pattern matching.
+The [mushroom body](https://en.wikipedia.org/wiki/Mushroom_bodies) (MB) is the insect brain structure for associative learning and memory. The **mushroom body calyx** (MB_CA) is the primary input region of the mushroom body, where [Kenyon cells](https://en.wikipedia.org/wiki/Kenyon_cell) receive olfactory and other sensory information from projection neurons. For performance, we'll focus on the calyx rather than the entire mushroom body structure.
+
+Let's extract MB calyx synapses using [regex](https://stringr.tidyverse.org/articles/regular-expressions.html) pattern matching.
+
+For more details on mushroom body organization and function, see [Li et al. 2020](https://pubmed.ncbi.nlm.nih.gov/33315010/) and [Aso et al. 2014](https://pubmed.ncbi.nlm.nih.gov/25535793/).
 
 **Two approaches depending on data location:**
 
@@ -375,7 +383,7 @@ if (use_gcs) {
   mb_synapses <- query_parquet_gcs(
     path = synapse_path,
     gcs_filesystem = gcs_fs,
-    filters = "neuropil LIKE 'MB%' AND side = 'right'",  # SQL WHERE clause - right side only
+    filters = "neuropil LIKE 'MB_CA%' AND side = 'right'",  # SQL WHERE clause - right side MB calyx only
     columns = c("id", "pre", "post", "neuropil", "side")
   )
 
@@ -392,7 +400,7 @@ if (use_gcs) {
 
   # Define and execute query
   mb_synapses <- synapses_ds %>%
-    filter(str_detect(neuropil, "^MB"),
+    filter(str_detect(neuropil, "^MB_CA"),  # Match MB calyx only
            side == "right",
            pre %in% proofread_ids | post %in% proofread_ids) %>%
     select(id, pre, post, neuropil, side) %>%
@@ -401,25 +409,32 @@ if (use_gcs) {
   cat("✓ Done! Loaded only the filtered subset into memory\n")
 }
 
-cat("\nMushroom body synapses:", nrow(mb_synapses), "\n")
+cat("\nMushroom body calyx synapses:", nrow(mb_synapses), "\n")
 cat("Unique presynaptic neurons/fragments:", n_distinct(mb_synapses$pre), "\n")
 cat("Unique postsynaptic neurons/fragments:", n_distinct(mb_synapses$post), "\n")
 ```
 
-### Identify Mushroom Body Neurons
+### Identify Mushroom Body Calyx Neurons
 
-Define MB neurons as those with ≥100 synapses (inputs or outputs) within the MB:
+Define MB calyx neurons as those with ≥100 synapses (inputs or outputs) within the MB calyx.
+
+As noted before, neuropils are just guides: the real way to define Calyx neurons, is as neurons that input the dendrites of Kenyon cells. So we will add that filter as well.
 
 ```{r mb_neurons}
+# Get kenyon cell ids
+kc_ids <- meta %>%
+  filter(cell_class == "kenyon_cell") %>%
+  pull(id)
+
 # Count outputs per neuron
 mb_outputs <- mb_synapses %>%
-  filter(pre %in% proofread_ids) %>%
+  filter(pre %in% proofread_ids & (pre %in% kc_ids | post %in% kc_ids)) %>%
   count(pre, name = "n_outputs") %>%
   filter(n_outputs >= 100)
 
 # Count inputs per neuron
 mb_inputs <- mb_synapses %>%
-  filter(post %in% proofread_ids) %>%
+  filter(post %in% proofread_ids & (pre %in% kc_ids | post %in% kc_ids)) %>%
   count(post, name = "n_inputs") %>%
   filter(n_inputs >= 100)
 
@@ -432,7 +447,7 @@ cat("Neurons with ≥100 synapses in MB:", length(mb_neurons), "\n")
 mb_meta <- meta %>%
   filter(get(paste0(dataset, "_id")) %in% mb_neurons)
 
-n_kc <- sum(str_detect(mb_meta$cell_type, "kenyon_cell"), na.rm = TRUE)
+n_kc <- sum(str_detect(mb_meta$cell_class, "kenyon_cell"), na.rm = TRUE)
 n_other <- nrow(mb_meta) - n_kc
 
 cat("  Kenyon cells:", n_kc, "\n")
@@ -441,11 +456,12 @@ cat("  Other neurons:", n_other, "\n")
 
 ### Characterize Non-Kenyon MB Neurons
 
-What other neuron types are present in the mushroom body?
+What other neuron types are present in the mushroom body calyx?
 
 ```{r mb_classes}
 # Prepare data
 mb_meta_clean <- mb_meta %>%
+  filter(!is.na(cell_type)) %>%
   mutate(
     super_class = replace_na(super_class, "other"),
     cell_class = replace_na(cell_class, "other"),
@@ -489,15 +505,15 @@ p3 <- ggplot(subclass_counts, aes(x = fct_reorder(cell_sub_class, n), y = n, fil
 # Save and display plots separately (each plot is independent)
 cat("\n### Non-Kenyon MB Neurons: Super Class\n")
 save_plot(p1, "mb_neurons_super_class")
-print(p1)
+ggplotly(p1)
 
 cat("\n### Cell Class (Top 15)\n")
 save_plot(p2, "mb_neurons_cell_class")
-print(p2)
+ggplotly(p2)
 
 cat("\n### Cell Sub-Class (Top 15)\n")
 save_plot(p3, "mb_neurons_cell_subclass")
-print(p3)
+ggplotly(p3)
 ```
 
 ### Summary Visualization
@@ -513,7 +529,7 @@ mb_summary <- data.frame(
                  n_other / (n_kc + n_other) * 100)
 )
 
-# Create summary plot
+# Create summary plot with ggplot2
 p_summary <- ggplot(mb_summary, aes(x = "", y = Count, fill = Category)) +
   geom_col(width = 1, color = "white", size = 2) +
   geom_text(aes(label = paste0(Count, "\n(", round(Percentage, 1), "%)")),
@@ -522,8 +538,8 @@ p_summary <- ggplot(mb_summary, aes(x = "", y = Count, fill = Category)) +
   coord_polar("y", start = 0) +
   scale_fill_manual(values = c("#E69F00", "#56B4E9")) +
   labs(
-    title = paste("Mushroom Body Neurons:", dataset),
-    subtitle = "Neurons with ≥100 synapses in MB",
+    title = paste("Mushroom Body Calyx Neurons:", dataset),
+    subtitle = "Neurons with ≥100 synapses in MB calyx",
     fill = "Cell Type"
   ) +
   theme_void() +
@@ -533,22 +549,32 @@ p_summary <- ggplot(mb_summary, aes(x = "", y = Count, fill = Category)) +
     legend.position = "right"
   )
 
-# Save and display plot
+# Save static plot
 save_plot(p_summary, "mb_neurons_summary")
-print(p_summary)
+
+# Create interactive plotly pie chart (coord_polar doesn't convert well)
+p_summary_plotly <- plot_ly(
+  mb_summary,
+  labels = ~Category,
+  values = ~Count,
+  type = 'pie',
+  textposition = 'inside',
+  textinfo = 'label+percent+value',
+  marker = list(colors = c("#E69F00", "#56B4E9"),
+                line = list(color = '#FFFFFF', width = 2)),
+  showlegend = TRUE
+) %>%
+  layout(
+    title = list(
+      text = paste0("Mushroom Body Calyx Neurons: ", dataset,
+                   "<br><sub>Neurons with ≥100 synapses in MB calyx</sub>"),
+      x = 0.5,
+      xanchor = 'center'
+    )
+  )
+
+p_summary_plotly
 ```
-
-Yoshi Aso's 2014 pre-connectome [paper](https://pubmed.ncbi.nlm.nih.gov/25535793/) on the mushroom body and its neuroanatomy are a great primer on understanding neurons of the mushroom body.
-
-There are lots of neuron classes and sub classes in the "other" set. Do, e.g., ascending neurons from the ventral nerve cord really do to the mushroom body?
-
-The answer is actually no. Many of the neuropil volumes made in order to label synapses are from data that was transformed into the connectome space, not made directly for it.
-
-This means that the volumes can be slightly the wrong shape, and slightly shifted by some microns in space. As a consequence, neurons that are not actually in the canonical mushroom body are caught by our search.
-
-Neuropils are simply helpful guides through the nervous systems, like countries on a map. Countries correlate with geography but if you want to understand geology, you generally ignore their human-made borders. Likewise, in connectomics, neuropils are guides that set your sites on the right location, but real answers come from connectivity, and thinking about your results.
-
-## Your Turn: Compare Datasets
 
 Now try this analysis yourself with a different dataset!
 
@@ -560,11 +586,12 @@ Now try this analysis yourself with a different dataset!
 # dataset_id <- "malecns_09_id"
 
 # Then re-run the entire notebook to see how the results differ!
+# Differences liely reflect differences in annotation between projects
 ```
 
 ### Tasks:
 
-1. **Read mushroom body synapses** from maleCNS
+1. **Read mushroom body calyx synapses** from maleCNS
 2. **Identify MB neurons** using the same ≥100 synapse threshold
 3. **Compare with BANC**:
    - Are the proportions of Kenyon cells similar?
