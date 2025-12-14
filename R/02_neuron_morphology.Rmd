@@ -39,9 +39,6 @@ save_plot <- function(plot_obj, name, width = 10, height = 6) {
 source("setup/packages.R")
 source("setup/functions.R")
 
-# Setup rgl for webGL rendering
-rgl::setupKnitr()
-
 # Set plotly as default 3D plot engine for nat
 options(nat.plotengine = 'plotly')
 ```
@@ -205,33 +202,20 @@ cat("Visualizing neuron", selected_id, "with", nrow(neuron$d), "points\n")
 summary(neuron)
 ```
 
-We can also use `rgl` to show the neuron in an interactive 3D window:
+Now let's visualize this neuron interactively with plotly:
 
-```{r plot3d_neuron_rgl, webgl=TRUE, fig.width=8, fig.height=6}
-# Temporarily switch to rgl for this chunk
-options(nat.plotengine = 'rgl')
-
-# Clear any previous 3D plots
-clear3d()
-
-# Plot the neuron in 3D with rgl
-plot3d(neuron, col = "darkblue", lwd = 2)
-
-# Add axes and labels
-axes3d()
-title3d(main = paste("Neuron", selected_id),
-        xlab = "X (nm)", ylab = "Y (nm)", zlab = "Z (nm)")
-
-# Switch back to plotly as default
-options(nat.plotengine = 'plotly')
+```{r plot3d_neuron, fig.width=8, fig.height=6}
+# Plot single neuron with plotly (default engine)
+nclear3d()
+plot3d(neuron, col = "darkblue", lwd = 2, soma = 10000)
 ```
 
-We can also use the `plotly` engine with the `natverse`:
+We can also plot multiple neurons in different colors:
 
-```{r plotly_neuron, fig.width=8, fig.height=6}
-# Plot with plotly (already set as default engine)
+```{r plot3d_multiple_neurons, fig.width=8, fig.height=6}
+# Plot multiple neurons with different colors
 nclear3d()
-plot3d(neurons[1:3], col = c("darkblue", "darkred", "darkgreen"), lwd = 2)
+plot3d(neurons, col = rainbow(length(neurons)), lwd = 2, soma = 10000)
 ```
 
 Fo publication-ready 2D images, see our [nat.ggplot](https://github.com/natverse/nat.ggplot?tab=readme-ov-file) libraries and the tutorial in its  `README`.
@@ -244,23 +228,28 @@ We can also show the mesh of the BANC brains and ventral nerve cord neuropils, t
 
 You can find its `.obj` file in our prepared data, and visualise it with our neuron as so.
 
-```{r simple_mesh_example, eval=FALSE, fig.width=8, fig.height=6}
-# Simple example: Read and display multiple neurons with neuropil mesh
-# Smaller specific neuropils are in obj/neuropils/ subdirectory
-
-neuropil_mesh_path <- file.path(data_path, dataset_base, "obj", "neuropils",
-                                 paste0("banc_neuropil_ITO_midbrain_", neuropil_pattern, "_L_nm.obj"))
+```{r simple_mesh_example, eval=TRUE, fig.width=8, fig.height=6}
+# Construct paths to mesh directories
+# Large anatomical regions (VNC, brain, etc.) are in obj/ directory
+region_path <- file.path(data_path, dataset_base, "obj")
+cat("Large region meshes path:", region_path, "\n")
+region_files <- system(paste("gsutil ls", region_path), intern = TRUE)
+vnc_obj <- region_files[grepl("vnc.*\\.obj$", region_files, ignore.case = TRUE)][1]
+brain_obj <- region_files[grepl("brain.*\\.obj$", region_files, ignore.case = TRUE)][1]
 
 # Download and read the mesh
 temp_mesh <- tempfile(fileext = ".obj")
-system(paste("gsutil cp", neuropil_mesh_path, temp_mesh))
-leg_neuropil <- rgl::readOBJ(temp_mesh)
+system(paste("gsutil cp", vnc_obj, temp_mesh))
+vnc_mesh <- as.hxsurf(rgl::readOBJ(temp_mesh))
+temp_mesh <- tempfile(fileext = ".obj")
+system(paste("gsutil cp", brain_obj, temp_mesh))
+brain_mesh <- as.hxsurf(rgl::readOBJ(temp_mesh))
 
 # Visualize multiple neurons with neuropil mesh using plotly
 nclear3d()
-plot3d(leg_neuropil, col = "lightblue", alpha = 0.3)
-plot3d(neurons[1:3], col = c("darkblue", "darkred", "darkgreen"), lwd = 2)
-title3d(main = "DNg12 Neurons with Neuropil Mesh")
+plot3d(vnc_mesh, col = "lightblue", alpha = 0.3)
+plot3d(brain_mesh, col = "lightblue", alpha = 0.3)
+plot3d(neurons, col = rainbow(length(neurons)), lwd = 2, soma = 10000)
 ```
 
 Let's fetch both the BANC ventral nerve cord neuropil, and the leg neuropil.
@@ -268,62 +257,36 @@ Let's fetch both the BANC ventral nerve cord neuropil, and the leg neuropil.
 We can show them over our neurons, with a little transparency.
 
 ```{r plot_with_neuropil, fig.width=10, fig.height=8}
-# Construct paths to mesh directories
-# Large anatomical regions (VNC, brain, etc.) are in obj/ directory
-region_path <- file.path(data_path, dataset_base, "obj")
-cat("Large region meshes path:", region_path, "\n")
-
 # Smaller specific neuropils are in obj/neuropils/ subdirectory
 neuropil_path <- file.path(data_path, dataset_base, "obj", "neuropils")
 cat("Neuropil meshes path:", neuropil_path, "\n")
 
 # List available OBJ files in the bucket
-region_files <- system(paste("gsutil ls", region_path), intern = TRUE)
 neuropil_files <- system(paste("gsutil ls", neuropil_path), intern = TRUE)
 
 # Find VNC and leg neuropil meshes
-vnc_obj <- region_files[grepl("vnc.*\\.obj$", region_files, ignore.case = TRUE)][1]
 leg_obj <- neuropil_files[grepl(neuropil_pattern, basename(neuropil_files))][1]
-
-cat("VNC mesh:", vnc_obj, "\n")
 cat("Leg mesh:", leg_obj, "\n")
 
 # Download and read meshes
-temp_vnc <- tempfile(fileext = ".obj")
 temp_leg <- tempfile(fileext = ".obj")
-
-if (!is.na(vnc_obj) && length(vnc_obj) > 0) {
-  system(paste("gsutil cp", vnc_obj, temp_vnc))
-  vnc_mesh <- rgl::readOBJ(temp_vnc)
-}
-
 if (!is.na(leg_obj) && length(leg_obj) > 0) {
   system(paste("gsutil cp", leg_obj, temp_leg))
-  leg_mesh <- rgl::readOBJ(temp_leg)
+  leg_mesh <- as.hxsurf(rgl::readOBJ(temp_leg))
 }
 
 # Plot neurons with neuropil meshes using plotly
 nclear3d()
 
-# Plot meshes with transparency
-if (exists("vnc_mesh")) {
-  shade3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
-}
-if (exists("leg_mesh")) {
-  shade3d(leg_mesh, col = "lightblue", alpha = 0.3)
-}
-
 # Plot multiple neurons in different colors
-n_plot <- min(length(neurons), 5)  # Plot up to 5 neurons
-neuron_colors <- c("darkblue", "darkred", "darkgreen", "darkorange", "purple")
-
+n_plot <- length(neurons)
 cat("Plotting", n_plot, "DNg12 neurons with neuropil context\n")
-for (i in 1:n_plot) {
-  plot3d(neurons[[i]], col = neuron_colors[i], lwd = 2, add = (i > 1))
-}
-
-title3d(main = paste(n_plot, "DNg12 Neurons in Neuropil Context"),
-        xlab = "X (nm)", ylab = "Y (nm)", zlab = "Z (nm)")
+plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
+plot3d(leg_mesh, col = "lightblue", alpha = 0.3, add = TRUE)
+plot3d(neurons, col = rainbow(length(neurons)), lwd = 2, soma = 10000)
+# This works for the rgl version of this plot: title3d(main = paste(n_plot,
+# "DNg12 Neurons in Neuropil Context"), xlab = "X (nm)", ylab = "Y (nm)", zlab =
+# "Z (nm)")
 ```
 
 ## Transform between template spaces
@@ -480,20 +443,30 @@ You can also `xform_brain` any other data with 3D points, e.g. meshes (`mesh3d` 
 
 Now that we have seen how to visualise the skeleton of one neuron, let's grab all of our neurons from this neuropil and assess how similar they are.
 
+This method relies on decomposing neurons into directed vector clouds, whose alignment in Euclidean space can be compared.
+
+<p align="center">
+  <img src="../inst/images/NBLAST_neuron_comparison.png" alt="NBLAST algorithm" width="100%">
+</p>
+
+Let's just deal with intrinsic neurons of the ventral nerve cord that are already marked as restricted to a single leg neuromere, to make this a little faster.
+
 To read all the neurons, we can select just our subset from the skeleton directory:
 
 ```{r read_all_neurons}
 # Create list of SWC file names for our neuron IDs
 # Limit to first 50 for performance in this example
-n_sample <- min(50, length(neuron_ids))
-
-cat("Reading", n_sample, "neurons from skeleton directory...\n")
+meta_ids <- meta %>%
+  filter(super_class=="ventral_nerve_cord_intrinsic",
+         cell_class == "single_leg_neuromere") %>%
+  distinct(cell_type, .keep_all = TRUE) %>% # we should not usually do this, but for speed reasons during the tutorial, just one skeleton per cell type
+  pull(id)
+cat("Reading", length(meta_ids), "neurons from skeleton directory...\n")
 neurons <- read_neurons_dir(
   dir_path = skeletons_path,
-  neuron_ids = neuron_ids[1:n_sample],
+  neuron_ids = meta_ids,
   gcs_filesystem = gcs_fs
 )
-
 cat("Loaded", length(neurons), "neurons\n")
 ```
 
@@ -504,8 +477,8 @@ We can now convert them from 1. nm to µm, and 2. to a 'dotprops' vector cloud, 
 neurons_um <- neurons / 1000
 
 # Convert to dotprops (point cloud with tangent vectors)
-# This removes connectivity but preserves spatial structure
-neurons_dp <- dotprops(neurons_um, resample = 1, k = 5)
+# This removes detail but preserves spatial structure
+neurons_dp <- dotprops(neurons_um, resample = 3, k = 3, .parallel = TRUE)
 
 cat("Converted to dotprops representation\n")
 
@@ -513,7 +486,7 @@ cat("Converted to dotprops representation\n")
 # This computes morphological similarity scores
 cat("Running NBLAST (this may take a moment)...\n")
 # Use smat=NULL to use raw dot product scores
-nblast_scores <- nat.nblast::nblast_allbyall(neurons_dp, smat = NULL)
+nblast_scores <- nat.nblast::nblast_allbyall(neurons_dp, UseAlpha = TRUE, .parallel = TRUE)
 
 cat("NBLAST complete!\n")
 cat("Score matrix dimensions:", dim(nblast_scores), "\n")
@@ -525,42 +498,81 @@ Let's visualise the result as a dendrogram:
 # Perform hierarchical clustering on NBLAST scores
 nblast_hc <- nhclust(scoremat = nblast_scores)
 
-# Plot and save dendrogram
-png(file.path(img_dir, paste0(dataset, "_", subset_name, "_nblast_dendrogram.png")),
-    width = 12, height = 8, units = "in", res = 300)
-plot(nblast_hc, labels = FALSE,
-     main = "Hierarchical Clustering of Neuron Morphology (NBLAST)",
-     xlab = "Neurons", ylab = "Height")
-dev.off()
+# Cut the dendrogram into k clusters
+k <- 20
+clusters <- cutree(nblast_hc, k = k)
+cat("Divided neurons into", k, "clusters\n")
+table(clusters)
 
-# Also display in notebook
-plot(nblast_hc, labels = FALSE,
-     main = "Hierarchical Clustering of Neuron Morphology (NBLAST)",
-     xlab = "Neurons", ylab = "Height")
+# Get the height at which to cut for k clusters
+cut_height <- nblast_hc$height[length(nblast_hc$height) - k + 1]
+
+# Create dendrogram data for ggplot2
+library(ggdendro)
+dend_data <- dendro_data(as.dendrogram(nblast_hc))
+
+# Add cluster information to the leaf labels
+dend_data$labels$cluster <- clusters[match(as.numeric(dend_data$labels$label),
+                                            order.dendrogram(as.dendrogram(nblast_hc)))]
+
+# Create a color palette for clusters
+cluster_colors <- setNames(rainbow(k), 1:k)
+
+# Create ggplot2 dendrogram with colored leaves and cut line
+p_dend <- ggplot() +
+  geom_segment(data = dend_data$segments,
+               aes(x = x, y = y, xend = xend, yend = yend),
+               color = "grey50", linewidth = 0.5) +
+  geom_point(data = dend_data$labels,
+             aes(x = x, y = y, color = factor(cluster)),
+             size = 2, show.legend = TRUE) +
+  geom_hline(yintercept = cut_height, linetype = "dashed",
+             color = "red", linewidth = 0.8) +
+  scale_color_manual(values = cluster_colors, name = "Cluster") +
+  labs(
+    title = paste("Hierarchical Clustering of Neuron Morphology (NBLAST)"),
+    subtitle = paste0(dataset, " - ", subset_name, " (k = ", k, " clusters)"),
+    x = "Neurons",
+    y = "Height"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) +
+  annotate("text", x = Inf, y = cut_height,
+           label = paste("Cut height (k =", k, ")"),
+           hjust = 1.1, vjust = -0.5, color = "red", size = 3)
+
+# Save static version
+save_plot(p_dend, paste0(dataset, "_", subset_name, "_nblast_dendrogram"),
+          width = 12, height = 8)
+
+# Create and display interactive plotly version
+p_dend_plotly <- ggplotly(p_dend, tooltip = c("y")) %>%
+  layout(
+    hovermode = "closest",
+    title = list(
+      text = paste0("Hierarchical Clustering of Neuron Morphology (NBLAST)<br>",
+                   "<sub>", dataset, " - ", subset_name, " (k = ", k, " clusters)</sub>"),
+      x = 0.5,
+      xanchor = 'center'
+    )
+  )
+
+p_dend_plotly
 ```
 
 Great, now let's view ~20 clusters by morphology:
 
 ```{r visualize_clusters, eval=FALSE, fig.width=10, fig.height=8}
-# Cut the dendrogram into k clusters
-k <- 20
-clusters <- cutree(nblast_hc, k = k)
-
-cat("Divided neurons into", k, "clusters\n")
-table(clusters)
-
-# Create a color palette for clusters
-cluster_colors <- rainbow(k)
-
 # Plot neurons colored by cluster
 nclear3d()
-
-for (i in 1:length(neurons_um)) {
-  cluster_id <- clusters[i]
-  plot3d(neurons_um[[i]], col = cluster_colors[cluster_id],
-         lwd = 1, add = TRUE)
-}
-
+plot3d(neurons,col=neuron_colors, soma = 10000)
 title3d(main = paste(k, "Morphological Clusters"),
         xlab = "X (µm)", ylab = "Y (µm)", zlab = "Z (µm)")
 ```
@@ -637,7 +649,6 @@ title3d(main = "Co-visualisation: BANC (blue) vs maleCNS (red) Leg Neurons",
 Now try this analysis yourself with a different subset, e.g., antennal lobe!
 
 Simply change the `subset_name` variable at the top of the tutorial and re-run the analysis.
-
 
 ## Extension: Axon-Dendrite Splits (Coming Soon)
 
