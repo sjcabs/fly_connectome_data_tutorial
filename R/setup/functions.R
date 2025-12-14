@@ -492,6 +492,92 @@ list_swc_in_zip <- function(zip_path, gcs_filesystem = NULL) {
   return(swc_files)
 }
 
+#' Read Neurons from Directory (Simplified)
+#'
+#' Simplified function to read SWC files using nat::read.neurons.
+#' Supports both local and GCS directories.
+#'
+#' @param dir_path Path to directory containing SWC files (can be gs:// for GCS)
+#' @param neuron_ids Vector of neuron IDs (SWC files will be named {id}.swc)
+#' @param gcs_filesystem Optional GCS filesystem object (required for GCS paths)
+#'
+#' @return neuronlist object from nat package
+#'
+#' @details
+#' This is a simple wrapper around nat::read.neurons that handles GCS paths.
+#' For GCS paths, files are downloaded to a temporary directory first, then
+#' read with nat::read.neurons.
+#'
+#' @examples
+#' \dontrun{
+#' # Local directory
+#' neurons <- read_neurons_dir("/path/to/skeletons/", c("123", "456", "789"))
+#'
+#' # GCS access
+#' fs <- setup_gcs_filesystem()
+#' neurons <- read_neurons_dir("gs://bucket/skeletons/",
+#'                            c("123", "456", "789"),
+#'                            gcs_filesystem = fs)
+#' }
+#'
+#' @export
+read_neurons_dir <- function(dir_path, neuron_ids, gcs_filesystem = NULL) {
+  is_gcs <- grepl("^gs://", dir_path)
+
+  if (is_gcs) {
+    if (is.null(gcs_filesystem)) {
+      stop("gcs_filesystem argument required for GCS paths")
+    }
+
+    # Download files to temp directory
+    tmp_dir <- tempfile()
+    dir.create(tmp_dir)
+    on.exit(unlink(tmp_dir, recursive = TRUE), add = TRUE)
+
+    cat("Downloading", length(neuron_ids), "SWC files from GCS...\n")
+
+    # Strip gs:// prefix for gcsfs
+    gcs_path_clean <- sub("^gs://", "", dir_path)
+
+    # Download each file
+    builtins <- reticulate::import_builtins()
+    downloaded <- 0
+    for (id in neuron_ids) {
+      swc_filename <- paste0(id, ".swc")
+      swc_path_gcs <- paste(gcs_path_clean, swc_filename, sep = "/")
+      swc_path_local <- file.path(tmp_dir, swc_filename)
+
+      tryCatch({
+        gcs_file <- gcs_filesystem$open(swc_path_gcs, "rb")
+        py_bytes <- gcs_file$read()
+        gcs_file$close()
+
+        # Decode and write to temp file
+        text_content <- py_bytes$decode("utf-8")
+        writeLines(text_content, swc_path_local)
+        downloaded <- downloaded + 1
+      }, error = function(e) {
+        warning("Could not download ", swc_filename, ": ", e$message)
+      })
+    }
+
+    cat("✓ Downloaded", downloaded, "files\n")
+
+    # Use nat::read.neurons on temp directory with parallelization
+    cat("Reading neurons with nat::read.neurons (parallel)...\n")
+    neurons <- nat::read.neurons(tmp_dir, pattern = "\\.swc$", format = "swc", .parallel = TRUE)
+
+  } else {
+    # Local path - use nat::read.neurons directly with parallelization
+    swc_files <- paste0(neuron_ids, ".swc")
+    cat("Reading", length(swc_files), "neurons with nat::read.neurons (parallel)...\n")
+    neurons <- nat::read.neurons(dir_path, files = swc_files, format = "swc", .parallel = TRUE)
+  }
+
+  cat("✓ Loaded", length(neurons), "neurons\n")
+  return(neurons)
+}
+
 #' Read Single SWC File from Directory or ZIP Archive
 #'
 #' Reads one SWC file from a directory or ZIP archive.
@@ -593,11 +679,12 @@ read_swc_from_zip <- function(zip_path, swc_filename,
 
       # Read file directly from GCS
       gcs_file <- gcs_filesystem$open(swc_path, "rb")
-      content <- gcs_file$read()
+      py_bytes <- gcs_file$read()
       gcs_file$close()
 
-      # Decode bytes to text
-      lines <- strsplit(rawToChar(content), "\n")[[1]]
+      # Decode bytes to string in Python, then split in R
+      text_content <- py_bytes$decode("utf-8")
+      lines <- strsplit(text_content, "\n")[[1]]
     }
   } else {
     # Local path
@@ -783,10 +870,12 @@ batch_read_swc_from_zip <- function(zip_path, swc_filenames,
 
         builtins <- reticulate::import_builtins()
         gcs_file <- gcs_filesystem$open(swc_path, "rb")
-        content <- gcs_file$read()
+        py_bytes <- gcs_file$read()
         gcs_file$close()
 
-        lines <- strsplit(rawToChar(content), "\n")[[1]]
+        # Decode bytes to string in Python, then split in R
+        text_content <- py_bytes$decode("utf-8")
+        lines <- strsplit(text_content, "\n")[[1]]
       }
     } else {
       # Local path
