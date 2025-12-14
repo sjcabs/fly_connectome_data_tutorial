@@ -63,7 +63,7 @@ Complete adult female fly brain connectome via the FlyWire project. Contains ~13
 - **Documentation:** [data/dataset_documentation/fafb_data.md](data/dataset_documentation/fafb_data.md)
 
 <p align="center">
-  <img src="inst/images/manc.png" alt="MANC connectome" width="40%">
+  <img src="inst/images/manc.png" alt="MANC connectome" width="25%">
 </p>
 
 ### MANC (Male Adult Nerve Cord)
@@ -74,7 +74,7 @@ First complete nerve cord connectome with ~23,000 neurons. A male fly. Missing b
 - **Documentation:** [data/dataset_documentation/manc_data.md](data/dataset_documentation/manc_data.md)
 
 <p align="center">
-  <img src="inst/images/hemibrain.png" alt="Hemibrain connectome" width="25%">
+  <img src="inst/images/hemibrain.png" alt="Hemibrain connectome" width="40%">
 </p>
 
 ### Hemibrain
