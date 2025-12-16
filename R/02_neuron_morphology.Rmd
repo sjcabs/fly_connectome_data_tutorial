@@ -652,7 +652,7 @@ vpn_ids <- vpn_meta[[dataset_fafb_id]]
 
 # Construct path to fafb skeletons in BANC space
 skeletons_path <- construct_path(data_path, "fafb", "skeletons",
-                                           space_suffix = "banc_space")
+                                           space_suffix = "fafb_space")
 
 # Read fafb neurons 
 vpn_neurons <- read_neurons_dir(
