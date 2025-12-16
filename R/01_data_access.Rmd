@@ -19,7 +19,7 @@ dataset_id <- "banc_746_id"
 
 # Data location - can be GCS bucket or local path
 # Option 1 (GCS - default): Access data directly from Google Cloud Storage
-data_path <- "gs://brain-and-nerve-cord_exports/sjcabs_data"
+data_path <- "gs://sjcabs_2025_data"
 
 # Option 2 (Local): Use local copy if you've downloaded the data with gsutil
 # data_path <- "/path/to/local/sjcabs_data"
@@ -118,21 +118,21 @@ Access data directly from Google Cloud Storage - no manual download required!
 - **Pros:** No local storage needed, always up-to-date
 - **Cons:** Slower (3-5 min for large files), requires authentication & internet
 
-**GCS bucket location:** `gs://brain-and-nerve-cord_exports/sjcabs_data/`
+**GCS bucket location:** `gs://sjcabs_2025_data/`
 
 ### Option 2: Local Access (Faster for Repeated Use)
 Download data once with `gsutil`, then access locally:
 
 ```bash
 # Download specific dataset (e.g., BANC metadata + synapses)
-gsutil -m cp gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
-gsutil -m cp gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
+gsutil -m cp gs://sjcabs_2025_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
+gsutil -m cp gs://sjcabs_2025_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
 
 # Or download entire dataset directory
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/sjcabs_data/banc ~/data/sjcabs_data/
+gsutil -m cp -r gs://sjcabs_2025_data/banc ~/data/sjcabs_data/
 
 # Or download all datasets (~500 GB total)
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/sjcabs_data ~/data/
+gsutil -m cp -r gs://sjcabs_2025_data ~/data/
 ```
 
 Then update the setup chunk:
@@ -148,11 +148,11 @@ data_path <- "~/data/sjcabs_data"  # Use your local path
 ### Available Datasets
 
 ```bash
-gs://brain-and-nerve-cord_exports/sjcabs_data/banc/
-gs://brain-and-nerve-cord_exports/sjcabs_data/fafb/
-gs://brain-and-nerve-cord_exports/sjcabs_data/manc/
-gs://brain-and-nerve-cord_exports/sjcabs_data/hemibrain/
-gs://brain-and-nerve-cord_exports/sjcabs_data/malecns/
+gs://sjcabs_2025_data/banc/
+gs://sjcabs_2025_data/fafb/
+gs://sjcabs_2025_data/manc/
+gs://sjcabs_2025_data/hemibrain/
+gs://sjcabs_2025_data/malecns/
 ```
 
 ## Reading Connectome Data
@@ -315,23 +315,15 @@ save_plot(p_nt, "neurotransmitter_distribution")
 ggplotly(p_nt)
 ```
 
-## Working with Synapse Data (Parquet + Lazy Loading)
+## Working with Synapse Data
 
-Synapse files are large (4-15 GB). With **Parquet format** and Arrow's lazy evaluation:
-- ✓ Filter and select BEFORE loading into RAM
-- ✓ Only loads matching rows and selected columns
-- ✓ Works on multi-GB files efficiently
+Synapse files can be very large (4-15 GB for full datasets). For this tutorial, we'll use **pre-filtered subsets** focusing on specific brain regions, which are much faster to load.
 
-**For large Parquet files:** Download locally first for best performance if you have the space
+**For workshop use:** We provide pre-filtered synapse data in Feather format for common regions like the mushroom body. This avoids the 10-20 minute wait for downloading and filtering large Parquet files.
 
-```bash
-# One-time download (recommended for repeated use)
-gsutil cp gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
-```
+**For advanced use:** If you need to query the full synapse dataset or filter by custom criteria, see the commented code at the end of this section for Parquet querying approaches.
 
-Then update your data_path to use local files.
-
-### Filtering Mushroom Body Calyx Synapses
+### Loading Pre-filtered Mushroom Body Synapses
 
 Our synapses have been roughly mapped to "neuropils", which are human-determined regions of the nervous system. These determinations are based on lumps and grooves on the surface of neural tissue and boundaries in synapse densities, but they roughly correlate with functional circuits. At least in some cases.
 
@@ -357,61 +349,60 @@ Let's extract MB calyx synapses using [regex](https://stringr.tidyverse.org/arti
 
 For more details on mushroom body organization and function, see [Li et al. 2020](https://pubmed.ncbi.nlm.nih.gov/33315010/) and [Aso et al. 2014](https://pubmed.ncbi.nlm.nih.gov/25535793/).
 
-**Two approaches depending on data location:**
-
-- **GCS:** Use `query_parquet_gcs()` with DuckDB for server-side filtering (only filtered data is downloaded)
-- **Local:** Use Arrow's lazy evaluation to scan local Parquet files efficiently
-
-**Note:** DuckDB is used for GCS queries because it:
-- Handles various Parquet formats robustly (avoids format compatibility issues)
-- Provides automatic predicate pushdown for efficient filtering
-- Has excellent GCS integration via the httpfs extension
-- Uses familiar SQL syntax for filters
+We provide a pre-filtered feather file at: `banc/mushroom_body/banc_746_mushroom_body_synapses.feather`
 
 ```{r mb_synapses}
-cat("\n=== FILTERING PARQUET DATA ===\n")
+# Load pre-filtered mushroom body synapses from feather file
+# This is MUCH faster than querying the full 4-15 GB Parquet file!
+mb_synapses_path <- file.path(data_path, dataset, "mushroom_body", paste0(dataset, "_mushroom_body_synapses.feather"))
+cat("Loading pre-filtered MB synapses from:", mb_synapses_path, "\n")
+mb_synapses <- read_feather_smart(mb_synapses_path, gcs_filesystem = gcs_fs)
 
-if (use_gcs) {
-  # GCS APPROACH: Server-side filtering with DuckDB
-  # DuckDB reads directly from GCS with predicate pushdown
-  # Only the filtered data is transferred from cloud storage
-  cat("\nQuerying GCS Parquet with DuckDB server-side filtering...\n")
-  cat("(Only matching rows/columns will be downloaded)\n\n")
-
-  # Query with server-side filtering (using custom query_parquet_gcs() function)
-  # DuckDB uses SQL syntax for filters
-  mb_synapses <- query_parquet_gcs(
-    path = synapse_path,
-    gcs_filesystem = gcs_fs,
-    filters = "neuropil LIKE 'MB_CA%' AND side = 'right'",  # SQL WHERE clause - right side MB calyx only
-    columns = c("id", "pre", "post", "neuropil", "side")
-  )
-
-  cat("✓ Done! Loaded only the filtered data from GCS\n")
-
-} else {
-  # LOCAL APPROACH: Arrow lazy evaluation
-  # Arrow scans the file and loads only matching rows into RAM
-  cat("\nQuerying local Parquet with lazy evaluation...\n")
-  cat("(Arrow scans file and loads only matching rows/columns)\n\n")
-
-  # Open dataset lazily (using custom open_dataset_lazy() function)
-  synapses_ds <- open_dataset_lazy(synapse_path, format = "parquet")
-
-  # Define and execute query
-  mb_synapses <- synapses_ds %>%
-    filter(str_detect(neuropil, "^MB_CA"),  # Match MB calyx only
-           side == "right",
-           pre %in% proofread_ids | post %in% proofread_ids) %>%
-    select(id, pre, post, neuropil, side) %>%
-    collect()
-
-  cat("✓ Done! Loaded only the filtered subset into memory\n")
-}
-
-cat("\nMushroom body calyx synapses:", nrow(mb_synapses), "\n")
+# Filter for right side and proofread neurons
+mb_synapses <- mb_synapses %>%
+  filter(side == "right",
+         pre %in% proofread_ids | post %in% proofread_ids)
 cat("Unique presynaptic neurons/fragments:", n_distinct(mb_synapses$pre), "\n")
 cat("Unique postsynaptic neurons/fragments:", n_distinct(mb_synapses$post), "\n")
+```
+
+### Alternative: Querying the Full Parquet File (Advanced)
+
+For reference, here's how you would query the full synapse Parquet file if needed. **This is commented out because it takes 10-20 minutes** to download and filter the multi-GB file:
+
+```{r parquet_query, eval=FALSE}
+# NOTE: This code is for reference only - it takes 10-20 minutes to run!
+#
+# synapse_path <- construct_path(data_path, dataset, "synapses")  # Full Parquet file
+#
+# if (use_gcs) {
+#   # GCS APPROACH: Server-side filtering with DuckDB
+#   # DuckDB reads directly from GCS with predicate pushdown
+#   cat("\nQuerying GCS Parquet with DuckDB server-side filtering...\n")
+#
+#   # Query with server-side filtering (using custom query_parquet_gcs() function)
+#   mb_synapses <- query_parquet_gcs(
+#     path = synapse_path,
+#     gcs_filesystem = gcs_fs,
+#     filters = "neuropil LIKE 'MB_CA%' AND side = 'right'",  # SQL WHERE clause
+#     columns = c("id", "pre", "post", "neuropil", "side")
+#   )
+#
+# } else {
+#   # LOCAL APPROACH: Arrow lazy evaluation
+#   cat("\nQuerying local Parquet with lazy evaluation...\n")
+#
+#   # Open dataset lazily
+#   synapses_ds <- open_dataset_lazy(synapse_path, format = "parquet")
+#
+#   # Define and execute query
+#   mb_synapses <- synapses_ds %>%
+#     filter(str_detect(neuropil, "^MB_CA"),
+#            side == "right",
+#            pre %in% proofread_ids | post %in% proofread_ids) %>%
+#     select(id, pre, post, neuropil, side) %>%
+#     collect()
+# }
 ```
 
 ### Identify Mushroom Body Calyx Neurons
@@ -576,6 +567,8 @@ p_summary_plotly <- plot_ly(
 p_summary_plotly
 ```
 
+## Your Turn: New dataset
+
 Now try this analysis yourself with a different dataset!
 
 **Exercise:** Switch to the `malecns` dataset and compare results with BANC.
@@ -586,7 +579,7 @@ Now try this analysis yourself with a different dataset!
 # dataset_id <- "malecns_09_id"
 
 # Then re-run the entire notebook to see how the results differ!
-# Differences liely reflect differences in annotation between projects
+# Differences likely reflect differences in annotation between projects
 ```
 
 ### Tasks:

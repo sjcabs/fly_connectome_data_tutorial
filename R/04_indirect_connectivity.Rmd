@@ -17,7 +17,7 @@ dataset <- "banc_746"
 dataset_id <- "banc_746_id"
 
 # Data location
-data_path <- "gs://brain-and-nerve-cord_exports/sjcabs_data"
+data_path <- "gs://sjcabs_2025_data"
 
 # Detect if using GCS or local path
 use_gcs <- grepl("^gs://", data_path)
@@ -405,9 +405,9 @@ influence_matrix_umap <- all_influence_scores_n %>%
 cat("UMAP input matrix:", nrow(influence_matrix_umap), "neurons x",
     ncol(influence_matrix_umap), "sensory sub-classes\n\n")
 
-# Run UMAP
+# Run UMAP (explicitly use umap package, not uwot)
 set.seed(42)
-umap_result <- umap(influence_matrix_umap, n_neighbors = 15, min_dist = 0.1)
+umap_result <- umap::umap(influence_matrix_umap, n_neighbors = 15, min_dist = 0.1)
 
 # Create data frame for plotting
 umap_df <- data.frame(
@@ -527,9 +527,9 @@ abdominal_influence_list <- list()
 for (i in seq_along(abdominal_source_cts)) {
   source_ct <- abdominal_source_cts[i]
   source_ids <- abdominal_source_neurons %>%
-    filter(cell_type==source_ct) %>%
+    filter(cell_type == source_ct) %>%
     pull(!!sym(dataset_id))
-  
+
   # Progress indicator
   if (i %% 50 == 0 || i == length(abdominal_source_cts)) {
     cat("Processing", i, "of", length(abdominal_source_cts), "cell types\n")
@@ -537,20 +537,20 @@ for (i in seq_along(abdominal_source_cts)) {
 
   # Calculate influence from this individual abdominal neuron
   suppressMessages({
-  influence_scores <- calculate_influence_py(ic_dataset, source_ids) %>%
-    filter(id %in% effector_ids) %>%
-    mutate(source = source_ct) %>%
-    left_join(
-      abdominal_source_neurons %>%
-        distinct(cell_type, .keep_all = TRUE) %>%
-        select(source = cell_type, source_class = cell_class),
-      by = "source",
-    ) %>%
-    left_join(
-      effector_neurons %>%
-        select(id = !!sym(dataset_id), target_type = cell_type, target_class = cell_class, target_sub_class = cell_sub_class),
-      by = "id"
-    )
+    influence_scores <- calculate_influence_py(ic_dataset, source_ids) %>%
+      filter(id %in% effector_ids) %>%
+      mutate(source = source_ct) %>%
+      left_join(
+        abdominal_source_neurons %>%
+          distinct(cell_type, .keep_all = TRUE) %>%
+          select(source = cell_type, source_class = cell_class),
+        by = "source"
+      ) %>%
+      left_join(
+        effector_neurons %>%
+          select(id = !!sym(dataset_id), target_type = cell_type, target_class = cell_class, target_sub_class = cell_sub_class),
+        by = "id"
+      )
   })
   abdominal_influence_list[[source_ct]] <- influence_scores
 }
@@ -682,9 +682,9 @@ abdominal_influence_all <- sensory_abdominal_influence %>%
   ) %>%
   distinct(source_type, target_sub_class, .keep_all = TRUE) %>%
   rbind(abdominal_influence_ct) %>%
-    filter(!is.na(source_type), 
-         !is.na(target_sub_class), 
-         adjusted_influence = 0) 
+    filter(!is.na(source_type),
+         !is.na(target_sub_class),
+         adjusted_influence != 0) 
 ```
 
 Cool. Now let's combine these normalised influence matrices. We can then make a UMAP based on the cosine similarity between abdominal cell types of the combined influence matrices, to reveal potential sensori-effector control. As in tutorial 03, we will use hierarchical clustering and centroid detection to colour and number these clusters.
@@ -816,10 +816,10 @@ save_plot(p_abdominal_umap, paste0(dataset, "_abdominal_functional_modules"))
 ggplotly(p_abdominal_umap, tooltip = "text")
 ```
 
-Now let's make a static facet plot, where we visualise influence from the top 9 source types!
+Now let's make a static facet plot, where we visualise influence from the top 25 source types!
 
 ```{r abdominal_facet_umap, fig.width=14, fig.height=14}
-# Work out the top 9 source types by total influence
+# Work out the top 25 source types by total influence
 top25_sources <- abdominal_influence_all %>%
   group_by(target_sub_class) %>%
   summarise(total_influence = sum(influence, na.rm = TRUE), .groups = "drop") %>%
@@ -832,7 +832,7 @@ print(top25_sources)
 
 # For each source type, calculate total adjusted influence per abdominal neuron
 source_influence_summary <- abdominal_influence_all %>%
-  filter(target_sub_class %in% top9_sources) %>%
+  filter(target_sub_class %in% top25_sources) %>%
   group_by(source_type, target_sub_class) %>%
   summarise(
     total_adjusted_influence = sum(adjusted_influence, na.rm = TRUE),
@@ -841,7 +841,7 @@ source_influence_summary <- abdominal_influence_all %>%
 
 # Join with UMAP coordinates
 # Note: umap_df has source_type as the abdominal types being analyzed
-# We need to create a matrix where each row is an abdominal type and columns are the top9 sources
+# We need to create a matrix where each row is an abdominal type and columns are the top25 sources
 influence_for_plot <- abdominal_influence_all %>%
   filter(target_sub_class %in% top25_sources) %>%
   select(source_type, target_sub_class, adjusted_influence) %>%
@@ -1244,36 +1244,8 @@ if (nrow(pc1_influence2) > 0) {
 
 Now we can see the key chemosensory channels onto these neurons, in both the female and male fly.
 
-## Key Insights
-
-From this analysis, we can see:
-
-1. **Diverse sensory influences**: MB dopaminergic neurons receive influence from many sensory modalities through both direct and indirect pathways
-2. **Cell type specificity**: Different dopamine neuron types show distinct sensory influence patterns
-3. **Indirect pathways**: Influence scores capture multi-synaptic signal propagation beyond direct connections
-
 ## Further Exploration
 
-Try modifying this analysis to explore different questions:
-
-```{r exercise, eval=FALSE}
-# Exercise 1: Analyse influence from descending neurons to motor neurons
-descending_neurons <- meta %>%
-  filter(flow == "descending") %>%
-  pull(!!sym(dataset_id))
-
-motor_neurons <- meta %>%
-  filter(super_class == "motor_neuron")
-
-# Exercise 2: Compare influence patterns across different datasets
-# Try with FAFB, MANC, or maleCNS by changing the dataset parameter
-
-# Exercise 3: Analyse influence within a specific neuropil
-# Filter neurons by region column before calculation
-
-# Exercise 4: Compare influence vs. direct connectivity
-# Calculate both and see how they differ for the same neuron pairs
-```
 
 ## Summary
 

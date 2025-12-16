@@ -59,7 +59,7 @@ You can change which subset and dataset to examine, by changing these two variab
 # Choose dataset and subset
 dataset <- "banc_746"
 dataset_id <- "banc_746_id"
-data_path <- "gs://brain-and-nerve-cord_exports/sjcabs_data"
+data_path <- "gs://sjcabs_2025_data"
 subset_name <- "front_leg"
 neuropil_pattern <- "T1"
 
@@ -307,58 +307,40 @@ This enables you to plot things from multiple datasets in BANC easily.
 
 For example, we can switch to looking at the maleCNS data, and read DNg12 neurons from maleCNS. We can then co-plot them in BANC space, with our BANC DNg12 neurons:
 
-```{r coplot_malecns_banc, eval=FALSE, fig.width=10, fig.height=8}
+```{r coplot_malecns_banc, eval=TRUE, fig.width=10, fig.height=8}
 # Switch to maleCNS dataset
-dataset_male <- "malecns"
+dataset_male <- "malecns_09"
 dataset_male_id <- "malecns_09_id"
 
 # Read maleCNS meta data
 meta_male_path <- construct_path(data_path, dataset_male, "meta")
 meta_male_full <- read_feather_smart(meta_male_path, gcs_filesystem = gcs_fs)
 
-# Filter for DNg12 neurons in maleCNS
-meta_male_dng12 <- meta_male_full %>%
-  filter(grepl("DNg12", cell_class, ignore.case = TRUE))
-
-cat("Found", nrow(meta_male_dng12), "DNg12 neurons in maleCNS\n")
+# Filter for epg neurons in maleCNS
+meta_male_epg <- meta_male_full %>%
+  filter(grepl("EPG", cell_type, ignore.case = TRUE))
+cat("Found", nrow(meta_male_epg), "EPG neurons in maleCNS\n")
 
 # Construct path to maleCNS skeletons in BANC space
 skeletons_male_banc_path <- construct_path(data_path, dataset_male, "skeletons",
                                            space_suffix = "banc_space")
 
 # Read maleCNS neurons (already in BANC space)
-# Sample a few for visualization
-n_male_sample <- min(5, nrow(meta_male_dng12))
-male_ids <- meta_male_dng12$id[1:n_male_sample]
-
-cat("Reading", n_male_sample, "maleCNS neurons from BANC space...\n")
+male_ids <- meta_male_epg[[dataset_male_id]]
 neurons_male_banc <- read_neurons_dir(
   dir_path = skeletons_male_banc_path,
   neuron_ids = male_ids,
   gcs_filesystem = gcs_fs
 )
 
-# Convert to microns
-neurons_male_banc_um <- neurons_male_banc / 1000
-
 # Co-plot BANC and maleCNS neurons
 nclear3d()
 
-# Plot BANC DNg12 neurons in blue
-cat("Plotting BANC neurons...\n")
-n_banc_plot <- min(5, length(neurons_um))
-for (i in 1:n_banc_plot) {
-  plot3d(neurons_um[[i]], col = "darkblue", lwd = 2, add = TRUE)
-}
-
-# Plot maleCNS DNg12 neurons in red
-cat("Plotting maleCNS neurons...\n")
-for (i in 1:length(neurons_male_banc_um)) {
-  plot3d(neurons_male_banc_um[[i]], col = "darkred", lwd = 2, add = TRUE)
-}
-
-title3d(main = "Co-visualisation: BANC (blue) vs maleCNS (red) DNg12 Neurons",
-        xlab = "X (µm)", ylab = "Y (µm)", zlab = "Z (µm)")
+# Plot BANC neurons in blue
+dummy1<-plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
+dummy2<-plot3d(brain_mesh, col = "lightgrey", alpha = 0.1, add = TRUE)
+dummy3<-plot3d(neurons, col = "navy", lwd = 2, soma = 10000)
+plot3d(neurons_male_banc, col = "red", lwd = 2, soma = 10000)
 ```
 
 However, if you want do do spatial transforms yourself, you will need to use `nat.templatebrains` and its `xform_brain` function. A bit confusingly, we will also need [bancr](https://github.com/flyconnectome/bancr?tab=readme-ov-file) to complete the bridge to BANC space.
@@ -367,11 +349,13 @@ For example, let's read the native MANC neurons
 
 ```{r xform_manc_to_banc, eval=FALSE, fig.width=10, fig.height=8}
 # Download template brain registrations (only needs to be done once)
-nat.flybrains::download_jefferislab_registrations()
+nat.flybrains::download_jefferislab_registrations() # one time only
+nat.jrcbrains::download_saalfeldlab_registrations() # one time only
+nat.jrcbrains::register_saalfeldlab_registrations()
 
 # Switch to MANC dataset
-dataset_manc <- "manc"
-dataset_manc_id <- "manc_v1_id"
+dataset_manc <- "manc_121"
+dataset_manc_id <- "manc_121_id"
 
 # Read MANC meta data
 meta_manc_path <- construct_path(data_path, dataset_manc, "meta")
@@ -379,19 +363,15 @@ meta_manc_full <- read_feather_smart(meta_manc_path, gcs_filesystem = gcs_fs)
 
 # Filter for DNg12 neurons in MANC
 meta_manc_dng12 <- meta_manc_full %>%
-  filter(grepl("DNg12", cell_class, ignore.case = TRUE))
-
+  filter(grepl("DNg12", cell_type, ignore.case = TRUE))
 cat("Found", nrow(meta_manc_dng12), "DNg12 neurons in MANC\n")
 
 # Construct path to MANC skeletons in native MANC space
 skeletons_manc_path <- construct_path(data_path, dataset_manc, "skeletons",
-                                      space_suffix = paste0(dataset_manc, "_space"))
+                                      space_suffix = paste0(dataset_manc, "_manc_space"))
 
 # Read MANC neurons in native space
-n_manc_sample <- min(3, nrow(meta_manc_dng12))
-manc_ids <- meta_manc_dng12$id[1:n_manc_sample]
-
-cat("Reading", n_manc_sample, "MANC neurons from native space...\n")
+manc_ids <- meta_manc_dng12[[dataset_manc_id]]
 manc_dng12 <- read_neurons_dir(
   dir_path = skeletons_manc_path,
   neuron_ids = manc_ids,
@@ -412,29 +392,15 @@ manc_dng12_banc <- bancr::banc_to_JRC2018F(manc_dng12_jrcvnc2018f,
                                            banc.units = "nm",
                                            inverse = TRUE)
 
-# Convert to microns
-manc_dng12_banc_um <- manc_dng12_banc / 1000
-
 # Co-plot MANC neurons with BANC neurons from earlier
 nclear3d()
 
-# Plot BANC DNg12 neurons in blue
-cat("Plotting BANC neurons...\n")
-n_banc_plot <- min(5, length(neurons_um))
-for (i in 1:n_banc_plot) {
-  plot3d(neurons_um[[i]], col = "darkblue", lwd = 2, add = TRUE)
-}
-
-# Plot transformed MANC DNg12 neurons in green
-cat("Plotting transformed MANC neurons...\n")
-for (i in 1:length(manc_dng12_banc_um)) {
-  plot3d(manc_dng12_banc_um[[i]], col = "darkgreen", lwd = 2, add = TRUE)
-}
-
-title3d(main = "Co-visualisation: BANC (blue) vs MANC (green) DNg12 Neurons",
-        xlab = "X (µm)", ylab = "Y (µm)", zlab = "Z (µm)")
-
-cat("\nNote: MANC neurons were transformed through MANC -> JRCVNC2018F -> BANC\n")
+# Plot  DNg12 neurons
+dummy1<-plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
+dummy2<-plot3d(brain_mesh, col = "lightgrey", alpha = 0.1, add = TRUE)
+dummy3<-plot3d(neurons, col = "navy", lwd = 2, soma = 10000)
+dumm4<-plot3d(neurons_male_banc, col = "red", lwd = 2, soma = 10000)
+dumm4<-plot3d(manc_dng12_banc, col = "green", lwd = 2, soma = 10000)
 ```
 
 You can also `xform_brain` any other data with 3D points, e.g. meshes (`mesh3d` objects), and data frames or matrices (with `x`,`y` and `z` columns), e.g. synapse data.
@@ -472,7 +438,7 @@ cat("Loaded", length(neurons), "neurons\n")
 
 We can now convert them from 1. nm to µm, and 2. to a 'dotprops' vector cloud, and use this to run an [NBLAST](https://natverse.org/nat.nblast/)!
 
-```{r nblast_analysis, eval=FALSE}
+```{r nblast_analysis, eval=TRUE}
 # Convert from nm to um (microns)
 neurons_um <- neurons / 1000
 
@@ -494,7 +460,7 @@ cat("Score matrix dimensions:", dim(nblast_scores), "\n")
 
 Let's visualise the result as a dendrogram:
 
-```{r nblast_dendrogram, eval=FALSE}
+```{r nblast_dendrogram, eval=TRUE}
 # Perform hierarchical clustering on NBLAST scores
 nblast_hc <- nhclust(scoremat = nblast_scores)
 
@@ -634,185 +600,77 @@ You can try playing with the number of clusters, `k`.
 
 Cool! What do you think all of these neurons do?
 
-## New Dataset (Coming Soon)
+## Your Turn: New subset
 
-*Note: This section demonstrates cross-dataset co-visualisation once additional datasets like maleCNS or MANC have their skeleton data uploaded to the bucket. For now, we'll continue exploring BANC data.*
+Now try this analysis yourself with a different dataset!
 
-<!--
-When malecns skeleton data is available, you can load it like this:
+**Exercise:** Switch the pre-prepared subset to `antennal_lobe`
 
-```{r load_malecns, eval=FALSE}
-# Switch to maleCNS dataset
-dataset2 <- "malecns"
-subset_name2 <- "front_leg"
+```{r exercise, eval=FALSE}
+# To work with a different dataset, change the dataset variable at the top:
+# subset_name <- "antennal_lobe"
+# neuropil_pattern <- "AL"
 
-# Construct paths for maleCNS
-base_path2 <- file.path("gs://brain-and-nerve-cord_exports/sjcabs_data", dataset2)
-meta_path2 <- file.path(base_path2, paste0(dataset2, "_09_meta.feather"))
-# Use banc_space skeletons for co-visualization (now in directory)
-skeletons_path2 <- file.path(base_path2, paste0(dataset2, "_banc_space_swc"))
+# Then re-run the entire notebook to see how the results differ!
+```
 
-# Read and filter meta data
-temp_feather2 <- tempfile(fileext = ".feather")
-system(paste("gsutil cp", meta_path2, temp_feather2))
-meta2_full <- read_feather(temp_feather2)
-unlink(temp_feather2)
+## Extension: Axon-Dendrite Splits
 
-meta2 <- meta2_full %>%
-  filter(grepl(neuropil_pattern, neuropil, ignore.case = FALSE))
-neuron_ids2 <- meta2$id
+For many of our datasetss (but notably not BANC yet), we have axon-dendrite splits that have been pre-calculated using a graph-theoretic algorithm from [Schneider-Mizell et al. 2016](https://elifesciences.org/articles/12059).
 
-# Read neurons using helper function (sample for performance)
-n_sample2 <- min(50, length(neuron_ids2))
+The method determines axon versus dendrite by "cutting" the neuron at its major information bottleneck based on synapse distributions, observing which half has more inputs versus outputs.
 
-cat("Reading", n_sample2, "maleCNS neurons from skeleton directory...\n")
-neurons_malecns <- read_neurons_dir(
-  dir_path = skeletons_path2,
-  neuron_ids = neuron_ids2[1:n_sample2],
+**Data locations:**
+- The `Label` column in `.swc` skeleton files gives compartment assignments
+- The `pre_label` and `post_label` columns in synapse tables give compartment assignments
+
+Let's visualize some olfactory projection neurons from **fafb** with compartments color-coded:
+
+- **Blue** = dendrite
+- **Green** = primary dendrite (linker)
+- **Orange** = axon
+- **Purple** = primary neurite tract (cell body fiber tract)
+
+We'll plot projections from the V glomerulus, which sense CO2.
+
+```{r compartment_visualization, eval=TRUE, fig.width=10, fig.height=8}
+# Switch to fafb dataset for this example (has compartment labels)
+dataset_fafb <- "fafb_783"
+dataset_fafb_id <- "fafb_783_id"
+
+# Read fafb meta data
+meta_fafb_path <- construct_path(data_path, dataset_fafb, "meta")
+meta_fafb <- read_feather_smart(meta_fafb_path, gcs_filesystem = gcs_fs)
+
+# Filter for V_l2PN neurons (case-insensitive)
+vpn_meta <- meta_fafb %>%
+  filter(grepl("V_l2PN", cell_type, ignore.case = TRUE))
+cat("Found", nrow(vpn_meta), "V_l2PN neurons in fafb\n")
+
+# Get neuron IDs (limit to first 3 for visualization)
+vpn_ids <- vpn_meta[[dataset_fafb_id]]
+
+# Construct path to fafb skeletons in BANC space
+skeletons_path <- construct_path(data_path, "fafb", "skeletons",
+                                           space_suffix = "banc_space")
+
+# Read fafb neurons 
+vpn_neurons <- read_neurons_dir(
+  dir_path = skeletons_path,
+  neuron_ids = vpn_ids,
   gcs_filesystem = gcs_fs
 )
 
-# Convert to microns
-neurons_malecns_um <- neurons_malecns / 1000
-```
-
-Then visualize both datasets together:
-
-```{r covisualize, eval=FALSE}
-# Plot both datasets together in BANC space
-clear3d()
-
-# Plot BANC neurons in blue
-for (i in 1:min(20, length(neurons_um))) {
-  plot3d(neurons_um[[i]], col = "darkblue", lwd = 1, add = TRUE)
-}
-
-# Plot maleCNS neurons in red
-for (i in 1:min(20, length(neurons_malecns_um))) {
-  plot3d(neurons_malecns_um[[i]], col = "darkred", lwd = 1, add = TRUE)
-}
-
-title3d(main = "Co-visualisation: BANC (blue) vs maleCNS (red) Leg Neurons",
-        xlab = "X (µm)", ylab = "Y (µm)", zlab = "Z (µm)")
-```
--->
-
-## Your Turn: New Subset
-
-Now try this analysis yourself with a different subset, e.g., antennal lobe!
-
-Simply change the `subset_name` variable at the top of the tutorial and re-run the analysis.
-
-## Extension: Axon-Dendrite Splits (Coming Soon)
-
-For all of our datasets, except BANC right now, we have axon-dendrite splits that have been pre-calculated.
-
-This uses a graph theoretic algorithm from [Schneider-Mizell et al. 2016](https://elifesciences.org/articles/12059) (see the paper).
-
-The method relies on the idea that information runs from input to output synapses, and determines axon versus dendrites by "cutting" the neuron at its major information bottleneck, and observing which half has more input/output.
-
-The `label` column in the underlying `.swc` files gives the compartment.
-
-In addition, the `pre_label` and `post_label` columns in our synapse tables give compartments.
-
-*Note: This section will be available once maleCNS skeleton data with compartment labels is uploaded. Below is the code framework for when that data becomes available.*
-
-<!--
-When maleCNS data with compartment labels is available, you can visualize DNa01 neurons like this:
-
-We will look at the neurons DNa01. To do this we must:
-
-1. Read the meta file, filter for DNa01 on `cell_type`
-2. Find its IDs, and read them from the `.swc` skeleton directory
-3. Read these skeletons in, then subset by "label"
-4. Visualise these compartments in different colours
-
-Let's use four colours:
-
-- **blue** = dendrite
-- **green** = primary dendrite (linker)
-- **orange** = axon
-- **purple** = primary neurite tract (cell body fiber tract)
-
-```{r compartment_visualization, eval=FALSE, fig.width=10, fig.height=8}
-# Read maleCNS meta data (use full meta, not subset)
-full_meta_path <- file.path(base_path2, paste0(dataset2, "_meta.csv"))
-temp_csv3 <- tempfile(fileext = ".csv")
-system(paste("gsutil cp", full_meta_path, temp_csv3))
-malecns_meta <- read_csv(temp_csv3, show_col_types = FALSE)
-unlink(temp_csv3)
-
-# Filter for DNa01 neurons
-dna01_meta <- malecns_meta %>%
-  filter(cell_type == "DNa01")
-
-cat("Found", nrow(dna01_meta), "DNa01 neurons\n")
-
-if (nrow(dna01_meta) > 0) {
-  # Get neuron IDs
-  dna01_ids <- dna01_meta$id
-
-  # Read neurons from skeleton directory using helper function
-  skeletons_path_malecns <- file.path(base_path2, paste0(dataset2, "_skeletons"))
-
-  cat("Reading", length(dna01_ids), "DNa01 neurons from skeleton directory...\n")
-  dna01_neurons <- read_neurons_dir(
-    dir_path = skeletons_path_malecns,
-    neuron_ids = dna01_ids,
-    gcs_filesystem = gcs_fs
-  )
-
-  # Convert to microns
-  dna01_neurons_um <- dna01_neurons / 1000
-
-  # Define compartment colors
-  # label values: 2=dendrite, 3=axon, 4=primary_dendrite, 5=primary_neurite
-  compartment_colors <- c(
-    "2" = "blue",        # dendrite
-    "3" = "orange",      # axon
-    "4" = "green",       # primary_dendrite
-    "5" = "purple"       # primary_neurite
-  )
-
-  # Plot neurons colored by compartment
-  nclear3d()
-
-  for (i in 1:length(dna01_neurons_um)) {
-    neuron <- dna01_neurons_um[[i]]
-
-    # Extract label for each point
-    if ("Label" %in% names(neuron$d)) {
-      labels <- as.character(neuron$d$Label)
-
-      # Plot each compartment separately
-      for (label_val in unique(labels)) {
-        idx <- which(labels == label_val)
-        if (length(idx) > 0) {
-          color <- compartment_colors[label_val]
-          if (is.na(color)) color <- "grey"
-
-          # Create temporary neuron with just this compartment
-          temp_d <- neuron$d[idx, ]
-          plot3d(temp_d[, c("X", "Y", "Z")],
-                 type = "l", col = color, lwd = 2, add = TRUE)
-        }
-      }
-    } else {
-      # If no label, plot whole neuron in grey
-      plot3d(neuron, col = "grey", lwd = 1, add = TRUE)
-    }
-  }
-
-  title3d(main = "DNa01 Neurons: Compartments",
-          xlab = "X (µm)", ylab = "Y (µm)", zlab = "Z (µm)")
-
-  # Add legend (manual)
-  cat("\nCompartment colors:\n")
-  cat("  Blue = dendrite\n")
-  cat("  Green = primary dendrite\n")
-  cat("  Orange = axon\n")
-  cat("  Purple = primary neurite tract\n")
-}
+# Plot neurons colored by compartment
+nclear3d()
+axon  <- hemibrainr::axonic_cable(vpn_neurons)
+dendrite  <- hemibrainr::dendritic_cable(vpn_neurons)
+linker  <- hemibrainr::primary_dendrite_cable(vpn_neurons)
+neurite  <- hemibrainr::primary_neurite_cable(vpn_neurons)
+p<-plot3d(axon,col="orange")
+p<-plot3d(dendrite,col="cyan")
+p<-plot3d(linker,col="green")
+plot3d(neurite,col="purple",soma=1000)
 ```
 
 We can also see the synapses by this split.
@@ -826,65 +684,94 @@ Let's use four colours:
 - **pink** = output synapse, dendrite
 - **red** = output synapse, axon
 
-```{r compartment_synapses, eval=FALSE, fig.width=10, fig.height=8}
-if (nrow(dna01_meta) > 0) {
-  # Read synapses for DNa01 neurons
-  synapses_path_full <- file.path(base_path2, paste0(dataset2, "_synapses.feather"))
-  temp_feather2 <- tempfile(fileext = ".feather")
-  system(paste("gsutil cp", synapses_path_full, temp_feather2))
+```{r compartment_synapses, eval=TRUE, fig.width=10, fig.height=8}
+# Construct path to maleCNS synapses file
+dataset <- "fafb_783"
+synapses_path <- file.path(data_path, "fafb", "antennal_lobe", paste0(dataset, "_antennal_lobe_synapses.feather"))
 
-  dna01_synapses <- read_feather(temp_feather2) %>%
-    filter(pre %in% dna01_ids | post %in% dna01_ids)
+# Read synapses and filter for DNg12 neurons
+vpn_synapses <- read_feather_smart(synapses_path, gcs_filesystem = gcs_fs) %>%
+  filter(pre %in% vpn_ids | post %in% vpn_ids)
+cat("Found", nrow(vpn_synapses), "synapses for VlPN neurons\n")
 
-  # Clean up
-  unlink(temp_feather2)
+# Create synapse classification
+# Determine if input (post) or output (pre)
+# Determine compartment label (2=dendrite, 3=axon)
+vpn_synapses_output_axons <- vpn_synapses %>%
+  filter(pre%in%vpn_ids, pre_label=="axon") %>%
+  xyzmatrix()
+vpn_synapses_output_dendrites <- vpn_synapses %>%
+  filter(pre%in%vpn_ids, pre_label=="dendrite") %>%
+  xyzmatrix()
+vpn_synapses_intput_axons <- vpn_synapses %>%
+  filter(post%in%vpn_ids, post_label=="axon") %>%
+  xyzmatrix()
+vpn_synapses_input_dendrites <- vpn_synapses %>%
+  filter(post%in%vpn_ids, post_label=="dendrite") %>%
+  xyzmatrix()
 
-  cat("Found", nrow(dna01_synapses), "synapses for DNa01 neurons\n")
+# Plot with plotly
+# p <- plot3d(vpn_neurons) # p is a plotly object
 
-  # Create synapse classification
-  # Determine if input (post) or output (pre)
-  # Determine compartment label
-  dna01_synapses <- dna01_synapses %>%
-    mutate(
-      is_output = pre %in% dna01_ids,
-      is_input = post %in% dna01_ids,
-      compartment = case_when(
-        is_output & !is.na(pre_label) ~ pre_label,
-        is_input & !is.na(post_label) ~ post_label,
-        TRUE ~ NA_real_
-      ),
-      syn_color = case_when(
-        is_input & compartment == 2 ~ "navy",      # input, dendrite
-        is_input & compartment == 3 ~ "cyan",      # input, axon
-        is_output & compartment == 2 ~ "pink",     # output, dendrite
-        is_output & compartment == 3 ~ "red",      # output, axon
-        TRUE ~ "grey"
-      )
-    )
-
-  # Convert to microns
-  dna01_synapses <- dna01_synapses %>%
-    mutate(x = x / 1000, y = y / 1000, z = z / 1000)
-
-  # Plot synapses on top of neurons
-  for (color in c("navy", "cyan", "pink", "red", "grey")) {
-    syn_subset <- dna01_synapses %>% filter(syn_color == color)
-    if (nrow(syn_subset) > 0) {
-      points3d(syn_subset$x, syn_subset$y, syn_subset$z,
-               col = color, size = 3)
-    }
-  }
-
-  title3d(main = "DNa01 Neurons: Compartmental Synapses",
-          xlab = "X (µm)", ylab = "Y (µm)", zlab = "Z (µm)")
-
-  # Print legend
-  cat("\nSynapse colors:\n")
-  cat("  Navy = input synapse, dendrite\n")
-  cat("  Cyan = input synapse, axon\n")
-  cat("  Pink = output synapse, dendrite\n")
-  cat("  Red = output synapse, axon\n")
+# Add synapse points as scatter3d traces
+# Navy = input synapse, dendrite
+if (nrow(vpn_synapses_input_dendrites) > 0) {
+  p <- p %>% plotly::add_trace(
+    x = vpn_synapses_input_dendrites[, 1],
+    y = vpn_synapses_input_dendrites[, 2],
+    z = vpn_synapses_input_dendrites[, 3],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 2, color = "navy", opacity = 0.6),
+    name = "Input, dendrite",
+    showlegend = TRUE
+  )
 }
+
+# Cyan = input synapse, axon
+if (nrow(vpn_synapses_intput_axons) > 0) {
+  p <- p %>% plotly::add_trace(
+    x = vpn_synapses_intput_axons[, 1],
+    y = vpn_synapses_intput_axons[, 2],
+    z = vpn_synapses_intput_axons[, 3],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 2, color = "cyan", opacity = 0.6),
+    name = "Input, axon",
+    showlegend = TRUE
+  )
+}
+
+# Pink = output synapse, dendrite
+if (nrow(vpn_synapses_output_dendrites) > 0) {
+  p <- p %>% plotly::add_trace(
+    x = vpn_synapses_output_dendrites[, 1],
+    y = vpn_synapses_output_dendrites[, 2],
+    z = vpn_synapses_output_dendrites[, 3],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 2, color = "pink", opacity = 0.6),
+    name = "Output, dendrite",
+    showlegend = TRUE
+  )
+}
+
+# Red = output synapse, axon
+if (nrow(vpn_synapses_output_axons) > 0) {
+  p <- p %>% plotly::add_trace(
+    x = vpn_synapses_output_axons[, 1],
+    y = vpn_synapses_output_axons[, 2],
+    z = vpn_synapses_output_axons[, 3],
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 2, color = "red", opacity = 0.6),
+    name = "Output, axon",
+    showlegend = TRUE
+  )
+}
+
+# Display the plot
+p
 ```
 -->
 

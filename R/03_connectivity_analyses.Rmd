@@ -30,7 +30,7 @@ dataset_id <- "banc_746_id"
 subset_name <- "suboesophageal_zone"  # Set to NULL for full dataset
 
 # Data location - can be GCS bucket or local path
-data_path <- "gs://brain-and-nerve-cord_exports/sjcabs_data"
+data_path <- "gs://sjcabs_2025_data"
 
 # Detect if using GCS or local path
 use_gcs <- grepl("^gs://", data_path)
@@ -49,23 +49,12 @@ save_plot <- function(plot_obj, name, width = 10, height = 6) {
 ```
 
 ```{r packages, include=FALSE}
-# Load required packages
+# Load required packages (all packages loaded in packages.R)
 source("setup/packages.R")
 source("setup/functions.R")
 
 # Set plotly as default 3D plot engine for nat
 options(nat.plotengine = 'plotly')
-
-# Additional packages for network analysis
-library(igraph)
-library(ggraph)
-library(tidygraph)
-library(lsa)  # For cosine similarity
-library(uwot)  # For UMAP
-library(plotly)  # For interactive plots
-library(Matrix)
-library(dynamicTreeCut)  # For dynamic tree cutting
-library(readobj)  # For reading 3D mesh files
 
 # Setup GCS access if needed
 if (use_gcs) {
@@ -117,7 +106,7 @@ dataset_base <- sub("_[0-9]+$", "", dataset)
 # Download and read meshes as hxsurf objects for nat+plotly
 read_neuropil <- function(search, data_path, dataset_base, ext="neuropils"){
   neuropil_path <- file.path(data_path, dataset_base, "obj", ext)
-  neuropil_files <- system(paste("gsutil ls", neuropil_path), intern = TRUE)
+  neuropil_files <- suppressWarnings(system(paste("gsutil ls", neuropil_path), intern = TRUE))
   objs <- neuropil_files[grepl(search, basename(neuropil_files))]
 
   if (length(objs) == 0) {
@@ -125,20 +114,13 @@ read_neuropil <- function(search, data_path, dataset_base, ext="neuropils"){
     return(NULL)
   }
 
-  shapelist <- shapelist3d()
-  for(obj_file in objs){
-    temp_file <- tempfile(fileext = ".obj")
-    system(paste("gsutil cp", obj_file, temp_file))
-    mesh <- as.hxsurf(rgl::readOBJ(temp_file))
-    shapelist[[basename(obj_file)]] <- mesh
-    cat("  ✓ Loaded:", basename(obj_file), "\n")
-  }
-
-  # Convert shapelist to hxsurf object for plotting
-  as.hxsurf(shapelist)
+  # Read and convert the first matching file (typically only one per search term)
+  obj_file <- objs[1]
+  temp_file <- tempfile(fileext = ".obj")
+  system(paste("gsutil cp", obj_file, temp_file))
+  mesh <- as.hxsurf(rgl::readOBJ(temp_file))
+  return(mesh)
 }
-
-cat("Loading SEZ neuropil meshes...\n\n")
 
 # Read brain mesh (large region)
 cat("Brain:\n")
@@ -155,57 +137,19 @@ ammc_l_mesh <- read_neuropil("AMMC_L", data_path, dataset_base)
 ammc_r_mesh <- read_neuropil("AMMC_R", data_path, dataset_base)
 
 # Plot all meshes in 3D with nat+plotly
-cat("\n3D Visualization:\n")
 nclear3d()
 
 # Plot brain as context (very transparent)
-if (!is.null(brain_mesh)) {
-  plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
-  cat("  ✓ Plotted brain\n")
-}
+dummy<-plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
 
 # Plot SEZ neuropils with distinct colors
-if (!is.null(gng_mesh)) {
-  plot3d(gng_mesh, col = "red", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted GNG (red)\n")
-}
-
-if (!is.null(fla_l_mesh)) {
-  plot3d(fla_l_mesh, col = "blue", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted FLA (L) (blue)\n")
-}
-
-if (!is.null(fla_r_mesh)) {
-  plot3d(fla_r_mesh, col = "lightblue", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted FLA (R) (light blue)\n")
-}
-
-if (!is.null(sad_mesh)) {
-  plot3d(sad_mesh, col = "green", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted SAD (green)\n")
-}
-
-if (!is.null(prw_mesh)) {
-  plot3d(prw_mesh, col = "purple", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted PRW (purple)\n")
-}
-
-if (!is.null(ammc_l_mesh)) {
-  plot3d(ammc_l_mesh, col = "orange", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted AMMC (L) (orange)\n")
-}
-
-if (!is.null(ammc_r_mesh)) {
-  plot3d(ammc_r_mesh, col = "lightsalmon", alpha = 0.5, add = TRUE)
-  cat("  ✓ Plotted AMMC (R) (light salmon)\n")
-}
-
-# Add title
-title3d(main = "Suboesophageal Zone Neuropils",
-        xlab = "X (nm)", ylab = "Y (nm)", zlab = "Z (nm)")
-
-cat("\n✓ Neuropil visualization complete!\n")
-
+dummy1<-plot3d(gng_mesh, col = "red", alpha = 0.5, add = TRUE)
+dummy2<-plot3d(fla_l_mesh, col = "blue", alpha = 0.5, add = TRUE)
+dummy3<-plot3d(fla_r_mesh, col = "lightblue", alpha = 0.5, add = TRUE)
+dummy4<-plot3d(sad_mesh, col = "green", alpha = 0.5, add = TRUE)
+dummy5<-plot3d(prw_mesh, col = "purple", alpha = 0.5, add = TRUE)
+dummy6<-plot3d(ammc_l_mesh, col = "orange", alpha = 0.5, add = TRUE)
+plot3d(ammc_r_mesh, col = "lightsalmon", alpha = 0.5, add = TRUE)
 ```
 
 ## Load Data
@@ -489,8 +433,6 @@ if (nrow(flow_subclass) > 0) {
 
   save_plot(p_flow, paste0(dataset, "_flow_subclass"), height = 10)
   ggplotly(p_flow)
-} else {
-  cat("No sensory or effector neurons in this subset.\n")
 }
 ```
 
@@ -526,7 +468,7 @@ p_scatter <- ggplot(edgelist_sample, aes(x = count, y = norm)) +
   theme(plot.title = element_text(face = "bold"))
 
 save_plot(p_scatter, paste0(dataset, "_weight_correlation"))
-ggplotly(p_scatter)
+p_scatter
 ```
 
 We can see density plots of input and output degrees with different synapse count thresholds:
@@ -725,7 +667,7 @@ p_network <- ggraph(layout_super) +
   )
 
 save_plot(p_network, paste0(dataset, "_network_super_class"), width = 12, height = 10)
-ggplotly(p_network)
+p_network
 ```
 
 ## Connectivity Matrix
@@ -759,15 +701,17 @@ edgelist_celltype <- edgelist_celltype_raw %>%
   group_by(pre_cell_type, post_cell_type, pre_flow, post_flow) %>%
   summarise(
     total_count = sum(count, na.rm = TRUE),
-    total_signed_count = sum(count * sign(signed_norm), na.rm = TRUE),
+    # Get the modal sign for this cell type pair (most common sign)
+    modal_sign = ifelse(sum(signed_norm > 0, na.rm = TRUE) > sum(signed_norm < 0, na.rm = TRUE), 1, -1),
     .groups = "drop"
   ) %>%
   left_join(post_totals, by = "post_cell_type") %>%
   mutate(
     norm = total_count / post_total_count,
-    signed_norm = total_signed_count / post_total_count
+    # Use modal sign to create signed_norm (preserves magnitude)
+    signed_norm = norm * modal_sign
   ) %>%
-  select(-post_total_count)
+  select(-post_total_count, -modal_sign)
 
 cat("Cell type connections:", nrow(edgelist_celltype), "\n")
 head(edgelist_celltype)
@@ -798,88 +742,85 @@ conn_heatmap_data <- edgelist_strong %>%
     .groups = "drop"
   )
 
-if (nrow(conn_heatmap_data) > 0) {
-  # Create matrix for clustering (use absolute values for clustering)
-  conn_matrix <- conn_heatmap_data %>%
-    tidyr::pivot_wider(
-      names_from = post_cell_type,
-      values_from = signed_norm,
-      values_fill = 0
-    ) %>%
-    tibble::column_to_rownames("pre_cell_type") %>%
-    as.matrix()
+# Create matrix for clustering (use absolute values for clustering)
+conn_matrix <- conn_heatmap_data %>%
+  tidyr::pivot_wider(
+    names_from = post_cell_type,
+    values_from = signed_norm,
+    values_fill = 0
+  ) %>%
+  tibble::column_to_rownames("pre_cell_type") %>%
+  as.matrix()
+conn_matrix[is.na(conn_matrix)] <- 0
+conn_matrix[is.infinite(conn_matrix)] <- 0
 
-  # Ward's hierarchical clustering on absolute values
-  if (ncol(conn_matrix) > 1 && nrow(conn_matrix) > 1) {
-    row_clust <- hclust(dist(abs(conn_matrix)), method = "ward.D2")
-    col_clust <- hclust(dist(t(abs(conn_matrix))), method = "ward.D2")
+# Cap color scale at 25th and 75th percentiles for better visibility
+cat("Matrix dimensions:", nrow(conn_matrix), "x", ncol(conn_matrix), "\n")
+p10 <- quantile(conn_matrix, 0.25, na.rm = TRUE)
+p90 <- quantile(conn_matrix, 0.75, na.rm = TRUE)
+max_abs_val <- max(abs(c(p10, p90)))
 
-    # Reorder data by clustering
-    conn_heatmap_data$pre_cell_type <- factor(
-      conn_heatmap_data$pre_cell_type,
-      levels = rownames(conn_matrix)[row_clust$order]
-    )
-    conn_heatmap_data$post_cell_type <- factor(
-      conn_heatmap_data$post_cell_type,
-      levels = colnames(conn_matrix)[col_clust$order]
-    )
+# Ensure max_abs_val is not zero (which would cause non-unique breaks)
+if (max_abs_val == 0 || is.na(max_abs_val)) {
+  # Fall back to using the actual range of the data
+  max_abs_val <- max(abs(conn_matrix), na.rm = TRUE)
+  if (max_abs_val == 0 || is.na(max_abs_val)) {
+    max_abs_val <- 1  # Default fallback
   }
-
-  # Cap color scale at 10th and 90th percentiles
-  p10 <- quantile(conn_heatmap_data$signed_norm, 0.10, na.rm = TRUE)
-  p90 <- quantile(conn_heatmap_data$signed_norm, 0.90, na.rm = TRUE)
-  max_abs_val <- max(abs(c(p10, p90)))
-
-  # Dynamic label sizing based on number of labels
-  n_rows <- length(unique(conn_heatmap_data$pre_cell_type))
-  n_cols <- length(unique(conn_heatmap_data$post_cell_type))
-  label_size <- pmin(10, pmax(4, 120 / pmax(n_rows, n_cols)))
-
-  p_matrix <- ggplot(conn_heatmap_data,
-                    aes(x = post_cell_type, y = pre_cell_type, fill = signed_norm)) +
-    geom_tile(color = "white", linewidth = 0.5) +
-    scale_fill_gradient2(
-      low = "blue",
-      mid = "white",
-      high = "red",
-      midpoint = 0,
-      limits = c(-max_abs_val, max_abs_val),
-      na.value = "grey90",
-      name = "Signed\nWeight"
-    ) +
-    labs(
-      title = "Signed Connectivity Matrix: Strong Connections (>95th percentile)",
-      subtitle = "Blue = inhibitory, Red = excitatory",
-      x = "Postsynaptic Cell Type",
-      y = "Presynaptic Cell Type"
-    ) +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1, size = label_size),
-      axis.text.y = element_text(size = label_size),
-      plot.title = element_text(face = "bold", size = 12),
-      plot.subtitle = element_text(size = 10),
-      panel.grid = element_blank()
-    )
-
-  save_plot(p_matrix, paste0(dataset, "_conn_matrix_strong"), width = 12, height = 10)
-  ggplotly(p_matrix)
-
-  cat("✓ Saved connectivity matrix heatmap\n")
-} else {
-  cat("No data for heatmap visualization\n")
 }
+
+cat("Color scale range: -", max_abs_val, "to +", max_abs_val, "\n")
+
+# Create static heatmap with pheatmap
+pheatmap(
+  conn_matrix,
+  clustering_method = "ward.D2",
+  clustering_distance_rows = "euclidean",
+  clustering_distance_cols = "euclidean",
+  color = colorRampPalette(c("blue", "white", "red"))(256),
+  breaks = seq(-max_abs_val, max_abs_val, length.out = 257),
+  show_rownames = FALSE,
+  show_colnames = FALSE,
+  main = "Signed Connectivity Matrix: Strong Connections",
+  filename = file.path(img_dir, paste0(dataset, "_conn_matrix_strong.png")),
+  width = 10,
+  height = 10
+)
+
+# Create interactive heatmap with Ward's clustering (no dendrograms shown)
+p_matrix <- heatmaply(
+  conn_matrix,
+  dendrogram = "none",
+  hclust_method = "ward.D2",
+  dist_method = function(x) dist(abs(x)),
+  colors = colorRampPalette(c("blue", "cyan", "white", "yellow", "red"))(256),
+  limits = c(-max_abs_val, max_abs_val),
+  main = "Signed Connectivity Matrix: Strong Connections (>95th percentile)",
+  xlab = "Postsynaptic Cell Type",
+  ylab = "Presynaptic Cell Type",
+  showticklabels = c(FALSE, FALSE),
+  hide_colorbar = FALSE,
+  fontsize_row = 6,
+  fontsize_col = 6,
+  key.title = "Signed\nWeight"
+)
+
+p_matrix
 ```
 
 What do you make of that?
 
 In general, making something of this can be quite tricky. Perhaps a start, but one thing I find useful is to look at sensory neurons (`flow == "afferent"`) and effector (i.e., motor or endocrine) neurons (`flow == "efferent"`), because they are quite interpretable.
 
-For these neurons, `cell_class` is often the most useful label.
+For these neurons, `cell_class` and/or `cell_sub_class` is often the most useful label.
+
+For sensory and motor neurons, this label can tell us about innervation of exterior body parts.
 
 <p align="center">
   <img src="../inst/images/fly_body_parts_1.png" alt="Fly body parts and sensory structures" width="80%">
 </p>
+
+As well as internal ones.
 
 <p align="center">
   <img src="../inst/images/fly_body_parts_2.png" alt="Fly body parts detailed view" width="80%">
@@ -930,7 +871,7 @@ sensory_outputs <- edgelist_mixed %>%
   filter(total_count >= 100)
 
 if (nrow(sensory_outputs) > 0) {
-  # Create matrix for clustering (ensure no duplicates)
+  # Create matrix for heatmap
   sensory_matrix <- sensory_outputs %>%
     group_by(pre_label, post_label) %>%
     summarise(norm = mean(norm, na.rm = TRUE), .groups = "drop") %>%
@@ -941,62 +882,43 @@ if (nrow(sensory_outputs) > 0) {
     ) %>%
     tibble::column_to_rownames("pre_label") %>%
     as.matrix()
+  sensory_matrix[is.na(sensory_matrix)] <- 0
+  sensory_matrix[is.infinite(sensory_matrix)] <- 0
 
-  # Ward's hierarchical clustering
-  if (ncol(sensory_matrix) > 1 && nrow(sensory_matrix) > 1) {
-    row_clust <- hclust(dist(sensory_matrix), method = "ward.D2")
-    col_clust <- hclust(dist(t(sensory_matrix)), method = "ward.D2")
-
-    # Reorder data by clustering
-    sensory_outputs$pre_label <- factor(
-      sensory_outputs$pre_label,
-      levels = rownames(sensory_matrix)[row_clust$order]
-    )
-    sensory_outputs$post_label <- factor(
-      sensory_outputs$post_label,
-      levels = colnames(sensory_matrix)[col_clust$order]
-    )
-  }
-
-  # Cap color scale at 10th and 90th percentiles
-  p10_sensory <- quantile(sensory_outputs$norm, 0.10, na.rm = TRUE)
-  p90_sensory <- quantile(sensory_outputs$norm, 0.90, na.rm = TRUE)
-
-  # Dynamic label sizing based on number of labels
-  n_rows <- length(unique(sensory_outputs$pre_label))
-  n_cols <- length(unique(sensory_outputs$post_label))
-  label_size <- pmin(10, pmax(4, 120 / pmax(n_rows, n_cols)))
-
-  p_sensory <- ggplot(sensory_outputs,
-                     aes(x = post_label, y = pre_label, fill = norm)) +
-    geom_tile(color = "white", linewidth = 0.5) +
-    scale_fill_gradientn(
-      colors = c("white", "grey90", "grey50", "black"),
-      values = scales::rescale(c(0, p10_sensory, (p10_sensory + p90_sensory)/2, p90_sensory)),
-      limits = c(0, p90_sensory),
-      na.value = "white",
-      name = "Normalized\nWeight",
-      oob = scales::squish
-    ) +
-    labs(
-      title = "Sensory Neuron Outputs (≥100 synapses)",
-      x = "Target Neuron Type",
-      y = "Sensory Neuron Type"
-    ) +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1, size = label_size),
-      axis.text.y = element_text(size = label_size),
-      plot.title = element_text(face = "bold", size = 12),
-      panel.grid = element_blank()
-    )
-
-  save_plot(p_sensory, paste0(dataset, "_sensory_outputs"), width = 14, height = 10)
-  ggplotly(p_sensory)
-
-  cat("✓ Saved sensory outputs heatmap\n")
+  cat("Matrix dimensions:", nrow(sensory_matrix), "x", ncol(sensory_matrix), "\n")
   cat("Sensory neuron types:", length(unique(sensory_outputs$pre_label)), "\n")
   cat("Target neuron types:", length(unique(sensory_outputs$post_label)), "\n")
+
+  # Create static heatmap with pheatmap
+  pheatmap(
+    sensory_matrix,
+    clustering_method = "ward.D2",
+    color = colorRampPalette(c("white", "grey90", "grey50", "black"))(256),
+    show_rownames = FALSE,
+    show_colnames = FALSE,
+    main = "Sensory Neuron Outputs",
+    filename = file.path(img_dir, paste0(dataset, "_sensory_outputs.png")),
+    width = 10,
+    height = 10
+  )
+
+  # Create interactive heatmap with Ward's clustering (no dendrograms shown)
+  p_sensory <- heatmaply(
+    sensory_matrix,
+    dendrogram = "none",
+    hclust_method = "ward.D2",
+    colors = colorRampPalette(c("navy", "blue", "cyan", "yellow", "orange", "red"))(256),
+    main = "Sensory Neuron Outputs (≥100 synapses)",
+    xlab = "Target Neuron Type",
+    ylab = "Sensory Neuron Type",
+    showticklabels = c(FALSE, FALSE),
+    hide_colorbar = FALSE,
+    fontsize_row = 6,
+    fontsize_col = 6,
+    key.title = "Normalized\nWeight"
+  )
+
+  p_sensory
 } else {
   cat("No sensory neurons with ≥100 synapses found in this subset.\n")
 }
@@ -1026,7 +948,7 @@ effector_inputs <- edgelist_mixed %>%
   filter(total_count >= 100)
 
 if (nrow(effector_inputs) > 0) {
-  # Create matrix for clustering (ensure no duplicates, use absolute values)
+  # Create matrix for heatmap
   effector_matrix <- effector_inputs %>%
     group_by(pre_label, post_label) %>%
     summarise(signed_norm = mean(signed_norm, na.rm = TRUE), .groups = "drop") %>%
@@ -1037,66 +959,64 @@ if (nrow(effector_inputs) > 0) {
     ) %>%
     tibble::column_to_rownames("pre_label") %>%
     as.matrix()
+  effector_matrix[is.na(effector_matrix)] <- 0
+  effector_matrix[is.infinite(effector_matrix)] <- 0
 
-  # Ward's hierarchical clustering on absolute values
-  if (ncol(effector_matrix) > 1 && nrow(effector_matrix) > 1) {
-    row_clust <- hclust(dist(abs(effector_matrix)), method = "ward.D2")
-    col_clust <- hclust(dist(t(abs(effector_matrix))), method = "ward.D2")
-
-    # Reorder data by clustering
-    effector_inputs$pre_label <- factor(
-      effector_inputs$pre_label,
-      levels = rownames(effector_matrix)[row_clust$order]
-    )
-    effector_inputs$post_label <- factor(
-      effector_inputs$post_label,
-      levels = colnames(effector_matrix)[col_clust$order]
-    )
-  }
-
-  # Cap color scale at 10th and 90th percentiles
-  p10_effector <- quantile(effector_inputs$signed_norm, 0.10, na.rm = TRUE)
-  p90_effector <- quantile(effector_inputs$signed_norm, 0.90, na.rm = TRUE)
-  max_abs_val <- max(abs(c(p10_effector, p90_effector)))
-
-  # Dynamic label sizing based on number of labels
-  n_rows <- length(unique(effector_inputs$pre_label))
-  n_cols <- length(unique(effector_inputs$post_label))
-  label_size <- pmin(10, pmax(4, 120 / pmax(n_rows, n_cols)))
-
-  p_effector <- ggplot(effector_inputs,
-                      aes(x = post_label, y = pre_label, fill = signed_norm)) +
-    geom_tile(color = "white", linewidth = 0.5) +
-    scale_fill_gradient2(
-      low = "blue",
-      mid = "white",
-      high = "red",
-      midpoint = 0,
-      limits = c(-max_abs_val, max_abs_val),
-      na.value = "grey90",
-      name = "Signed\nWeight"
-    ) +
-    labs(
-      title = "Signed Effector Neuron Inputs (≥100 synapses)",
-      subtitle = "Blue = inhibitory, Red = excitatory",
-      x = "Effector Neuron Type",
-      y = "Input Neuron Type"
-    ) +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1, size = label_size),
-      axis.text.y = element_text(size = label_size),
-      plot.title = element_text(face = "bold", size = 12),
-      plot.subtitle = element_text(size = 10),
-      panel.grid = element_blank()
-    )
-
-  save_plot(p_effector, paste0(dataset, "_effector_inputs"), width = 14, height = 10)
-  ggplotly(p_effector)
-
-  cat("✓ Saved effector inputs heatmap\n")
+  cat("Matrix dimensions:", nrow(effector_matrix), "x", ncol(effector_matrix), "\n")
   cat("Input neuron types:", length(unique(effector_inputs$pre_label)), "\n")
   cat("Effector neuron types:", length(unique(effector_inputs$post_label)), "\n")
+
+  # Cap color scale for better visibility
+  p10_effector <- quantile(effector_matrix, 0.25, na.rm = TRUE)
+  p90_effector <- quantile(effector_matrix, 0.75, na.rm = TRUE)
+  max_abs_val <- max(abs(c(p10_effector, p90_effector)))
+
+  # Ensure max_abs_val is not zero (which would cause non-unique breaks)
+  if (max_abs_val == 0 || is.na(max_abs_val)) {
+    # Fall back to using the actual range of the data
+    max_abs_val <- max(abs(effector_matrix), na.rm = TRUE)
+    if (max_abs_val == 0 || is.na(max_abs_val)) {
+      max_abs_val <- 1  # Default fallback
+    }
+  }
+
+  cat("Color scale range: -", max_abs_val, "to +", max_abs_val, "\n")
+
+  # Create static heatmap with pheatmap (saved to PNG)
+  pheatmap(
+    effector_matrix,
+    clustering_method = "ward.D2",
+    clustering_distance_rows = "euclidean",
+    clustering_distance_cols = "euclidean",
+    color = colorRampPalette(c("blue", "white", "red"))(256),
+    breaks = seq(-max_abs_val, max_abs_val, length.out = 257),
+    show_rownames = FALSE,
+    show_colnames = FALSE,
+    main = "Signed Effector Neuron Inputs (≥100 synapses)",
+    filename = file.path(img_dir, paste0(dataset, "_effector_inputs.png")),
+    width = 10,
+    height = 10
+  )
+
+  # Create interactive heatmap with Ward's clustering (no dendrograms shown)
+  p_effector <- heatmaply(
+    effector_matrix,
+    dendrogram = "none",
+    hclust_method = "ward.D2",
+    dist_method = function(x) dist(abs(x)),  # Use absolute values for distance
+    colors = colorRampPalette(c("blue", "cyan", "white", "yellow", "red"))(256),
+    limits = c(-max_abs_val, max_abs_val),
+    main = "Signed Effector Neuron Inputs (≥100 synapses)",
+    xlab = "Effector Neuron Type",
+    ylab = "Input Neuron Type",
+    showticklabels = c(FALSE, FALSE),  # Hide axis text, show on hover
+    hide_colorbar = FALSE,
+    fontsize_row = 6,
+    fontsize_col = 6,
+    key.title = "Signed\nWeight"
+  )
+
+  p_effector
 } else {
   cat("No effector neurons with ≥100 input synapses found in this subset.\n")
 }
@@ -1201,7 +1121,6 @@ cosine_similarity_sparse <- function(X) {
 undirected_cosine_sim_matrix <- cosine_similarity_sparse(sparse_matrix)
 undirected_cosine_sim_matrix[is.infinite(undirected_cosine_sim_matrix)] <- 0
 
-cat("✓ Cosine similarity matrix computed\n")
 cat("Dimensions:", nrow(undirected_cosine_sim_matrix), "x",
     ncol(undirected_cosine_sim_matrix), "\n")
 ```
@@ -1239,15 +1158,14 @@ umap_df <- data.frame(
     by = "id"
   )
 
-cat("✓ UMAP complete\n")
 
-# Plot UMAP colored by super_class with density contours
-p_umap_super <- ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = super_class)) +
-  geom_density_2d(aes(group = super_class), alpha = 0.3, linewidth = 0.5) +
+# Plot UMAP colored by super_class with hover text showing ID and cell_type
+p_umap_super <- ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = super_class,
+                                     text = paste0("ID: ", id, "\nCell Type: ", cell_type))) +
   geom_point(alpha = 0.6, size = 1.5) +
   labs(
     title = "UMAP of Connectivity Patterns",
-    subtitle = "Colored by super_class, with density contours",
+    subtitle = "Colored by super_class",
     color = "Super Class"
   ) +
   theme_minimal() +
@@ -1257,7 +1175,7 @@ p_umap_super <- ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = super_class)) 
   )
 
 save_plot(p_umap_super, paste0(dataset, "_umap_super_class"))
-ggplotly(p_umap_super)
+ggplotly(p_umap_super, tooltip = "text")
 ```
 
 Next, we will perform [hierarchical clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering) on the UMAP coordinates to identify connectivity-based clusters:
@@ -1326,16 +1244,18 @@ cluster_centroids <- umap_df %>%
     n = n()
   )
 
-# Plot UMAP colored by cluster (no density contours)
-p_umap_clusters <- ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = cluster)) +
+# Plot UMAP colored by cluster with hover text showing ID and cell_type
+p_umap_clusters <- ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = cluster,
+                                        text = paste0("ID: ", id, "\nCell Type: ", cell_type))) +
   geom_point(alpha = 0.7, size = 2) +
   scale_color_manual(values = cluster_colors) +
   geom_text(
     data = cluster_centroids,
-    aes(label = cluster),
+    aes(x = UMAP1, y = UMAP2, label = cluster),
     color = "black",
     size = 5,
-    fontface = "bold"
+    fontface = "bold",
+    inherit.aes = FALSE
   ) +
   labs(
     title = "Connectivity-Based Clusters",
@@ -1349,7 +1269,7 @@ p_umap_clusters <- ggplot(umap_df, aes(x = UMAP1, y = UMAP2, color = cluster)) +
   )
 
 save_plot(p_umap_clusters, paste0(dataset, "_umap_clusters"))
-ggplotly(p_umap_clusters)
+ggplotly(p_umap_clusters, tooltip = "text")
 ```
 
 Let's examine what cell types are in each cluster:
@@ -1411,7 +1331,7 @@ Let's create a special UMAP visualization highlighting sensory and effector neur
 umap_df_flow <- umap_df %>%
   mutate(
     is_sensory = super_class == "sensory",
-    is_effector = super_class == "efferent",
+    is_effector = flow == "efferent",  # Use flow column for effector neurons
     display_type = case_when(
       is_sensory ~ "Sensory",
       is_effector ~ "Effector",
@@ -1423,17 +1343,18 @@ umap_df_flow <- umap_df %>%
       TRUE ~ "circle"
     ),
     display_label = case_when(
-      is_sensory | is_effector ~ cell_sub_class,
+      is_sensory ~ cell_sub_class,
+      is_effector ~ cell_class,
       TRUE ~ "Other"
     )
   )
 
-# Create plot
+# Create plot with hover text showing ID and cell_type
 p_umap_sensory_effector <- ggplot(umap_df_flow, aes(x = UMAP1, y = UMAP2)) +
   # Plot "Other" neurons in grey first
   geom_point(
     data = umap_df_flow %>% filter(display_type == "Other"),
-    aes(color = display_type),
+    aes(color = display_type, text = paste0("ID: ", id, "\nCell Type: ", cell_type)),
     alpha = 0.3,
     size = 1.5,
     shape = 16
@@ -1441,15 +1362,15 @@ p_umap_sensory_effector <- ggplot(umap_df_flow, aes(x = UMAP1, y = UMAP2)) +
   # Plot sensory neurons (circles) colored by cell_sub_class
   geom_point(
     data = umap_df_flow %>% filter(is_sensory),
-    aes(color = display_label),
+    aes(color = display_label, text = paste0("ID: ", id, "\nCell Type: ", cell_type)),
     alpha = 0.8,
     size = 2.5,
     shape = 16  # circle
   ) +
-  # Plot effector neurons (squares) colored by cell_sub_class
+  # Plot effector neurons (squares) colored by cell_class
   geom_point(
     data = umap_df_flow %>% filter(is_effector),
-    aes(color = display_label),
+    aes(color = display_label, text = paste0("ID: ", id, "\nCell Type: ", cell_type)),
     alpha = 0.8,
     size = 2.5,
     shape = 15  # square
@@ -1460,11 +1381,11 @@ p_umap_sensory_effector <- ggplot(umap_df_flow, aes(x = UMAP1, y = UMAP2)) +
       setNames(
         rainbow(length(unique(c(
           umap_df_flow$cell_sub_class[umap_df_flow$is_sensory],
-          umap_df_flow$cell_sub_class[umap_df_flow$is_effector]
+          umap_df_flow$cell_class[umap_df_flow$is_effector]
         )))),
         unique(c(
           umap_df_flow$cell_sub_class[umap_df_flow$is_sensory],
-          umap_df_flow$cell_sub_class[umap_df_flow$is_effector]
+          umap_df_flow$cell_class[umap_df_flow$is_effector]
         ))
       )
     ),
@@ -1483,7 +1404,7 @@ p_umap_sensory_effector <- ggplot(umap_df_flow, aes(x = UMAP1, y = UMAP2)) +
   )
 
 save_plot(p_umap_sensory_effector, paste0(dataset, "_umap_sensory_effector"))
-ggplotly(p_umap_sensory_effector)
+ggplotly(p_umap_sensory_effector, tooltip = "text")
 ```
 
 ## Cluster Network with Sensory-Effector Nodes
@@ -1603,16 +1524,177 @@ if (nrow(edgelist_cluster_network) > 0) {
     )
 
   save_plot(p_cluster_network, paste0(dataset, "_cluster_network"), width = 14, height = 12)
-  ggplotly(p_cluster_network)
+  p_cluster_network
 
-  cat("✓ Created cluster network with", vcount(g_cluster), "nodes and",
-      ecount(g_cluster), "edges\n")
-  cat("  Sensory nodes:", sum(vertices_cluster$node_type == "sensory", na.rm = TRUE), "\n")
-  cat("  Effector nodes:", sum(vertices_cluster$node_type == "effector", na.rm = TRUE), "\n")
-  cat("  Cluster nodes:", sum(vertices_cluster$node_type == "cluster", na.rm = TRUE), "\n")
+  cat("Network nodes:", vcount(g_cluster), "\n")
+  cat("Network edges:", ecount(g_cluster), "\n")
+  cat("Sensory nodes:", sum(vertices_cluster$node_type == "sensory", na.rm = TRUE), "\n")
+  cat("Effector nodes:", sum(vertices_cluster$node_type == "effector", na.rm = TRUE), "\n")
+  cat("Cluster nodes:", sum(vertices_cluster$node_type == "cluster", na.rm = TRUE), "\n")
 } else {
   cat("Insufficient connections for cluster network visualization.\n")
 }
+```
+
+## Visualise cluster morphologies
+
+Remembering what we learned from tutorial 02, we can read `.swc` files by cluster, and visualise the morphologies of each cluster, to give us a sense of what we are dealing with.
+
+```{r read_cluster_skeletons, warning=FALSE}
+# Sample a few neurons per cluster for visualization
+set.seed(42)
+neurons_per_cluster <- 10
+max_clusters_to_viz <- min(8, n_clusters)  # Visualize up to 8 clusters
+
+# Get sample of neurons for each cluster
+# Note: slice_sample will use all available neurons if n exceeds group size
+cluster_samples <- umap_df %>%
+  filter(cluster %in% 1:max_clusters_to_viz) %>%
+  group_by(cluster) %>%
+  slice_sample(n = neurons_per_cluster) %>%
+  ungroup()
+
+cat("Sampling", neurons_per_cluster, "neurons per cluster\n")
+cat("Visualizing first", max_clusters_to_viz, "clusters\n")
+cat("Total neurons to visualize:", nrow(cluster_samples), "\n\n")
+
+# Download skeletons
+swc_path <- file.path(data_path, dataset_base, "obj", "skeletons")
+cat("Skeleton path:", swc_path, "\n")
+
+# Create temporary directory for SWC files
+temp_swc_dir <- tempdir()
+
+# Function to download and read SWC file
+read_swc_neuron <- function(neuron_id, swc_path, temp_dir) {
+  tryCatch({
+    # Find SWC file for this neuron
+    swc_pattern <- paste0(neuron_id, ".swc")
+    gsutil_cmd <- paste("gsutil ls", swc_path, "| grep", swc_pattern)
+    swc_file <- system(gsutil_cmd, intern = TRUE, ignore.stderr = TRUE)
+
+    if (length(swc_file) == 0) return(NULL)
+
+    # Download to temp location
+    temp_file <- file.path(temp_dir, basename(swc_file))
+    download_cmd <- paste("gsutil cp", swc_file, temp_file)
+    system(download_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+
+    # Read SWC
+    if (file.exists(temp_file)) {
+      neuron <- read.neuron(temp_file)
+      return(neuron)
+    }
+    return(NULL)
+  }, error = function(e) {
+    return(NULL)
+  })
+}
+
+# Read neurons for each cluster
+neurons_by_cluster <- list()
+cat("Reading SWC files...\n")
+
+for (cl in 1:max_clusters_to_viz) {
+  cluster_ids <- cluster_samples %>%
+    filter(cluster == cl) %>%
+    pull(id)
+
+  neurons_list <- list()
+  for (nid in cluster_ids) {
+    neuron <- read_swc_neuron(nid, swc_path, temp_swc_dir)
+    if (!is.null(neuron)) {
+      neurons_list[[as.character(nid)]] <- neuron
+    }
+  }
+
+  if (length(neurons_list) > 0) {
+    neurons_by_cluster[[cl]] <- as.neuronlist(neurons_list)
+    cat("  Cluster", cl, ":", length(neurons_list), "neurons loaded\n")
+  }
+}
+
+cat("\nLoaded skeletons for", length(neurons_by_cluster), "clusters\n")
+```
+
+Now let's visualize each cluster's morphologies:
+
+```{r visualize_cluster_1, eval=TRUE, fig.width=10, fig.height=8}
+if (1 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[1]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[1]], col = cluster_colors[1], soma = 10000)
+}
+```
+
+```{r visualize_cluster_2, eval=TRUE, fig.width=10, fig.height=8}
+if (2 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[2]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[2]], col = cluster_colors[2], soma = 10000)
+}
+```
+
+```{r visualize_cluster_3, eval=TRUE, fig.width=10, fig.height=8}
+if (3 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[3]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[3]], col = cluster_colors[3], soma = 10000)
+}
+```
+
+```{r visualize_cluster_4, eval=TRUE, fig.width=10, fig.height=8}
+if (4 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[4]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[4]], col = cluster_colors[4], soma = 10000)
+}
+```
+
+```{r visualize_cluster_5, eval=TRUE, fig.width=10, fig.height=8}
+if (5 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[5]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[5]], col = cluster_colors[5], soma = 10000)
+}
+```
+
+```{r visualize_cluster_6, eval=TRUE, fig.width=10, fig.height=8}
+if (6 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[6]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[6]], col = cluster_colors[6], soma = 10000)
+}
+```
+
+```{r visualize_cluster_7, eval=TRUE, fig.width=10, fig.height=8}
+if (7 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[7]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[7]], col = cluster_colors[7], soma = 10000)
+}
+```
+
+```{r visualize_cluster_8, eval=TRUE, fig.width=10, fig.height=8}
+if (8 %in% names(neurons_by_cluster) && length(neurons_by_cluster[[8]]) > 0) {
+  nclear3d()
+  dummy <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1)
+  plot3d(neurons_by_cluster[[8]], col = cluster_colors[8], soma = 10000)
+}
+```
+
+## Your Turn: New subset
+
+Now try this analysis yourself with a different dataset!
+
+**Exercise:** Switch the pre-prepared subset to `front_leg`
+
+```{r exercise, eval=FALSE}
+# To work with a different dataset, change the dataset variable at the top:
+# subset_name <- "front_leg"
+# neuropil_pattern <- "T1"
+
+# Then re-run the entire notebook to see how the results differ!
 ```
 
 ## Summary
@@ -1641,8 +1723,6 @@ Try exploring different datasets or subsets:
 - Try different subsets (mushroom_body, central_complex, etc.)
 - Adjust clustering parameters (k, deepSplit) to find different granularities
 - Look for specific neuron types of interest in your clusters
-
-For more advanced network analysis, see the [BANC paper](https://doi.org/10.1101/2025.07.31.667571) supplementary code.
 
 ---
 
