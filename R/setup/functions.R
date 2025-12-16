@@ -282,6 +282,26 @@ open_dataset_lazy <- function(path, format = "parquet") {
 #' data <- read_feather_smart("~/data/data.feather")
 #' }
 #'
+#' Read Feather File with Automatic GCS Detection
+#'
+#' Convenience wrapper around read_feather_smart that automatically handles GCS vs local paths.
+#'
+#' @param path Full path to feather file (can be gs:// for GCS or local path)
+#' @param use_gcs Boolean indicating whether to use GCS (if TRUE, sets up filesystem automatically)
+#' @param show_progress Show progress messages (default: TRUE)
+#'
+#' @return A tibble with the file contents
+#'
+#' @export
+read_feather_gcs <- function(path, use_gcs = FALSE, show_progress = TRUE) {
+  if (use_gcs || grepl("^gs://", path)) {
+    gcs_fs <- setup_gcs_filesystem()
+    return(read_feather_smart(path, gcs_filesystem = gcs_fs, show_progress = show_progress))
+  } else {
+    return(read_feather_smart(path, gcs_filesystem = NULL, show_progress = show_progress))
+  }
+}
+
 #' @export
 read_feather_smart <- function(path, gcs_filesystem = NULL, show_progress = TRUE) {
   is_gcs <- grepl("^gs://", path)
@@ -397,6 +417,10 @@ construct_path <- function(data_root, dataset, file_type = "meta", space_suffix 
     } else {
       filename <- paste0(dataset_name, "_", space_suffix, "_swc", extension)
     }
+  } else if (file_type == "edgelist_simple") {
+    # edgelist_simple files have "simple" before "edgelist" in the filename
+    # e.g., banc_746_simple_edgelist.feather (not banc_746_edgelist_simple.feather)
+    filename <- paste0(dataset, "_simple_edgelist", extension)
   } else {
     # Other file types include the full dataset name with version
     filename <- paste0(dataset, "_", file_type, extension)
