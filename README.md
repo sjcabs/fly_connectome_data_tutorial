@@ -135,18 +135,18 @@ Analysis tools:
 
 ## Data Organisation
 
-All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data)**
+All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/sjcabs_2025_data)**
 
 You can browse and download files directly from the browser, or use command-line tools:
 ```bash
 # List available datasets
-gsutil ls gs://brain-and-nerve-cord_exports/sjcabs_data/
+gsutil ls gs://sjcabs_2025_data/
 
 # Download a specific file
-gsutil cp gs://brain-and-nerve-cord_exports/sjcabs_data/path/to/file .
+gsutil cp gs://sjcabs_2025_data/path/to/file .
 
 # Download an entire folder
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/sjcabs_data/folder_name .
+gsutil -m cp -r gs://sjcabs_2025_data/folder_name .
 ```
 
 ### Example Structure (BANC)
@@ -194,16 +194,16 @@ We provide curated subsets focusing on specific circuits:
 ## Detailed Data Inventory
 
 ### BANC (Brain and Nerve Cord)
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/banc)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/banc/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/sjcabs_2025_data/banc)** | `gs://sjcabs_2025_data/banc/`
 
-- [`banc_746_meta.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_meta.feather) (0.01 GB) - Metadata
-- [`banc_746_simple_edgelist.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_simple_edgelist.feather) (4.8 GB) - Connectivity
-- [`banc_746_synapses.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.feather) (10.2 GB) - Synapses
-- [`banc_banc_space_l2_swc.zip`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/sjcabs_data/banc/banc_banc_space_l2_swc.zip) - Skeletons
+- [`banc_746_meta.feather`](https://console.cloud.google.com/storage/browser/_details/sjcabs_2025_data/banc/banc_746_meta.feather) (0.01 GB) - Metadata
+- [`banc_746_simple_edgelist.feather`](https://console.cloud.google.com/storage/browser/_details/sjcabs_2025_data/banc/banc_746_simple_edgelist.feather) (4.8 GB) - Connectivity
+- [`banc_746_synapses.feather`](https://console.cloud.google.com/storage/browser/_details/sjcabs_2025_data/banc/banc_746_synapses.feather) (10.2 GB) - Synapses
+- [`banc_banc_space_l2_swc.zip`](https://console.cloud.google.com/storage/browser/_details/sjcabs_2025_data/banc/banc_banc_space_l2_swc.zip) - Skeletons
 - **Curated subsets:** `abdominal_neuromere/`, `antennal_lobe/`, `central_complex/`, `front_leg/`, `mushroom_body/`, `optic/`, `suboesophageal_zone/`
 
 ### FAFB (Full Adult Fly Brain)
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/fafb)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/fafb/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/sjcabs_2025_data/fafb)** | `gs://sjcabs_2025_data/fafb/`
 
 - `fafb_783_meta.feather` (~0.01 GB) - Metadata
 - `fafb_783_simple_edgelist.feather` (~5 GB) - Connectivity
@@ -214,7 +214,7 @@ We provide curated subsets focusing on specific circuits:
 - **Curated subsets:** `antennal_lobe/`, `central_complex/`, `mushroom_body/`, `optic/`, `suboesophageal_zone/`
 
 ### MANC (Male Adult Nerve Cord)
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/manc)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/manc/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/sjcabs_2025_data/manc)** | `gs://sjcabs_2025_data/manc/`
 
 - `manc_121_meta.feather` (~0.005 GB) - Metadata
 - `manc_121_simple_edgelist.feather` (~1.5 GB) - Connectivity
@@ -223,7 +223,7 @@ We provide curated subsets focusing on specific circuits:
 - `manc_banc_space_swc.zip` - Skeletons (BANC space)
 
 ### Hemibrain
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/sjcabs_data/hemibrain)** | `gs://brain-and-nerve-cord_exports/sjcabs_data/hemibrain/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/sjcabs_2025_data/hemibrain)** | `gs://sjcabs_2025_data/hemibrain/`
 
 - `hemibrain_121_meta.feather` (~0.005 GB) - Metadata
 - `hemibrain_121_simple_edgelist.feather` (~2 GB) - Connectivity
@@ -236,13 +236,13 @@ We provide curated subsets focusing on specific circuits:
 ### Download Examples
 ```bash
 # Small file - metadata (recommended to start)
-gsutil cp gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_meta.feather .
+gsutil cp gs://sjcabs_2025_data/banc/banc_746_meta.feather .
 
 # Curated subset - much smaller than full dataset
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/sjcabs_data/banc/antennal_lobe/ .
+gsutil -m cp -r gs://sjcabs_2025_data/banc/antennal_lobe/ .
 
 # Large file - check size first
-gsutil ls -lh gs://brain-and-nerve-cord_exports/sjcabs_data/banc/banc_746_synapses.feather
+gsutil ls -lh gs://sjcabs_2025_data/banc/banc_746_synapses.feather
 ```
 
 ---
