@@ -109,9 +109,7 @@ def setup_gcs(token='google_default'):
     Before using with authenticated buckets:
         gcloud auth application-default login
     """
-    print("Setting up Google Cloud Storage access...")
     gcs = gcsfs.GCSFileSystem(token=token)
-    print("✓ GCS filesystem initialized")
     return gcs
 
 
@@ -194,7 +192,6 @@ def read_feather_gcs(path, gcs_fs=None):
         if gcs_fs is None:
             raise ValueError("gcs_fs required for GCS paths")
 
-        print(f"Reading from GCS: {path}")
         gcs_path = path.replace("gs://", "")
 
         with gcs_fs.open(gcs_path, 'rb') as f:
@@ -203,7 +200,6 @@ def read_feather_gcs(path, gcs_fs=None):
         print(f"✓ Loaded {len(df):,} rows")
         return df
     else:
-        print(f"Reading from local path: {path}")
         df = pd.read_feather(path)
         print(f"✓ Loaded {len(df):,} rows")
         return df
@@ -231,7 +227,6 @@ def read_parquet_gcs(path, gcs_fs=None, columns=None):
         if gcs_fs is None:
             raise ValueError("gcs_fs required for GCS paths")
 
-        print(f"Reading from GCS: {path}")
         gcs_path = path.replace("gs://", "")
 
         with gcs_fs.open(gcs_path, 'rb') as f:
@@ -240,7 +235,6 @@ def read_parquet_gcs(path, gcs_fs=None, columns=None):
         print(f"✓ Loaded {len(df):,} rows")
         return df
     else:
-        print(f"Reading from local path: {path}")
         df = pd.read_parquet(path, columns=columns)
         print(f"✓ Loaded {len(df):,} rows")
         return df
@@ -370,6 +364,38 @@ def save_figure(fig, filename, format='png', **kwargs):
     print(f"✓ Saved figure: {filename}")
 
 
+def save_plot(fig, name, img_dir=None, format='png', **kwargs):
+    """
+    Save plot to image directory (convenience wrapper).
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure or plotly.graph_objects.Figure
+        Figure to save
+    name : str
+        Base name (without extension or directory)
+    img_dir : str, optional
+        Image directory (defaults to IMG_DIR if set in globals)
+    format : str
+        Output format ('png', 'html', 'svg', etc.)
+    **kwargs
+        Additional arguments passed to save_figure
+    """
+    # Use IMG_DIR from globals if available
+    if img_dir is None:
+        import sys
+        frame = sys._getframe(1)
+        img_dir = frame.f_globals.get('IMG_DIR', '.')
+
+    # Construct full path
+    filename = os.path.join(img_dir, f"{name}.{format}")
+
+    # Save using save_figure
+    save_figure(fig, filename, format=format, **kwargs)
+
+    print(f"✓ Saved plot to {filename}")
+
+
 # ==============================================================================
 # Export commonly used items
 # ==============================================================================
@@ -391,5 +417,5 @@ __all__ = [
     # Helper functions
     'setup_gcs', 'construct_path',
     'read_feather_gcs', 'read_parquet_gcs',
-    'save_figure'
+    'save_figure', 'save_plot'
 ]
