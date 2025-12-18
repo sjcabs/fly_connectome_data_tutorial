@@ -1,226 +1,206 @@
+# FAFB Dataset Documentation
+
 ## Overview
 
-This location contains data for the Full Adult Fly Brain (FAFB) project.
+**FAFB (Full Adult Fly Brain)** via FlyWire - Complete adult female fly brain connectome at synapse resolution.
 
-We are here:
+**Publication:** Dorkenwald et al. (2024) Nature; Schlegel et al. (2024) Nature | **Version:** 783 (published)
+**Scale:** 139,213 neurons | ~69 million synapses | ~15 million connections
+**Location:** `gs://sjcabs_2025_data/fafb/`
+
+## File Structure
 
 ```
-sjcabs_data/
-├── fafb/          
-│   ├── fafb_783_meta.feather     
-│   ├── fafb_783_edgelist_simple.feather     
-│   ├── fafb_783_edgelist.feather 
-│   ├── fafb_783_synapses.feather 
-│   ├── fafb_783_dcv_soma.feather 
-│   ├── fafb_783_dcv_cell.feather 
-│   ├── fafb_783_skeletons_in_banc_space.zip
-│   ├── fafb_783_skeletons_in_fafb_space.zip
-│   ├── antennal_lobe/ * data subset for olfactory circuits of the anennal lobe
-│   ├── central_complex/ * data subset for navigation circuits of the central complex
-│   ├── mushroom_body/ * data subset for associative memory circuits of the mushroom body
-│   ├── optic/ * data subset for associative memory circuits of the optic lobe
-│   └── suboesophageal_zone/ * data subset for tactile and feeding circuits of the lower brain  
-└── ...
+fafb/
+├── fafb_783_meta.feather                    # 8.8 MB - Neuron metadata
+├── fafb_783_simple_edgelist.feather         # 289 MB - Neuron connectivity
+├── fafb_783_split_edgelist.feather          # 523 MB - Compartment connectivity
+├── fafb_783_synapses.feather                # 4.0 GB - Individual synapses
+├── fafb_783_synapses.parquet                # 1.7 GB - Synapses (compressed)
+├── fafb_banc_space_swc/                     # Skeletons in BANC space
+├── fafb_fafb_space_swc/                     # Skeletons in native FAFB space
+├── hemibrain_banc_space_swc/                # Hemibrain matches in BANC space
+├── hemibrain_hemibrain_raw_space_swc/       # Hemibrain matches in native space
+├── neuropils/                               # Neuropil mesh files
+├── obj/                                     # Additional mesh objects
+└── [Curated Subsets:]
+    ├── antennal_lobe/                       # Olfactory circuits
+    ├── central_complex/                     # Navigation circuits
+    ├── mushroom_body/                       # Associative memory circuits
+    ├── optic/                               # Visual processing circuits
+    └── suboesophageal_zone/                 # Feeding and tactile circuits
 ```
 
-For each dataset, feather file contain:
-- `meta` - Neuron metadata and annotations (in FAFB, subsetted to only "proofread" neurons)
-- `edgelist_simple` - Neuron-to-neuron connections
-- `edgelist` - Compartment-to-compartment connections  
-- `synapses` - Detailed synapse information (in FAFB, subsetted to presynaptic links with cleft_score > 50 on proofead neurons)
-- `skeletons` - FAFB high-resolution skeletons in SWC format
+---
+
+## File Descriptions
+
+### `fafb_783_meta.feather`
+
+**Content:** Neuron metadata and annotations
+**Dimensions:** 139,213 rows × 17 columns
+**Each row:** One neuron
+
+#### Key Columns
+
+| Column | Description |
+|--------|-------------|
+| `fafb_783_id` | Root ID for neuron in FAFB version 783 (FlyWire published) |
+| `region` | Brain region (central_brain, optic_lobe) |
+| `side` | Laterality (left, right, midline) |
+| `hemilineage` | Developmental hemilineage |
+| `nerve` | Entry/exit nerve (if applicable) |
+| `flow` | Information flow (intrinsic, afferent, efferent) |
+| `super_class` | Coarse functional classification |
+| `cell_class` | Intermediate classification |
+| `cell_sub_class` | Fine classification |
+| `cell_type` | Cell type name (8,453 annotated types) |
+| `neurotransmitter_predicted` | Predicted transmitter |
+| `neurotransmitter_score` | Confidence score (0-1) |
+| `cell_function` | Functional category |
+| `cell_function_detailed` | Detailed annotation |
+| `body_part_sensory` | Sensory target |
+| `body_part_effector` | Motor target |
+| `status` | Quality flag |
+
+**Notes:**
+- Harmonized to BANC schema for cross-dataset comparisons
+- Brain only (no VNC)
+- Comprehensive cell type annotations from Schlegel et al. (2024)
+
+---
+
+### `fafb_783_simple_edgelist.feather`
+
+**Content:** Neuron-to-neuron connectivity
+**Dimensions:** 15,023,799 rows × 5 columns
+**Each row:** One neuron → neuron connection
+
+| Column | Description |
+|--------|-------------|
+| `pre` | Presynaptic neuron ID |
+| `post` | Postsynaptic neuron ID |
+| `count` | Number of synapses pre → post |
+| `norm` | Normalized weight (`count / total_input`) |
+| `total_input` | Total inputs to target |
+
+---
+
+### `fafb_783_split_edgelist.feather`
+
+**Content:** Compartment-to-compartment connectivity
+**Dimensions:** 15,867,088 rows × 7 columns
+**Each row:** One compartment → compartment connection
+
+| Column | Description |
+|--------|-------------|
+| `pre` | Presynaptic neuron ID |
+| `pre_label` | Presynaptic compartment (axon, dendrite, soma, primary_dendrite, primary_neurite, unknown) |
+| `post` | Postsynaptic neuron ID |
+| `post_label` | Postsynaptic compartment |
+| `count` | Synapses connecting compartments |
+| `norm` | Normalized by total neuron input |
+| `compartment_input` | Total inputs to target compartment |
+
+**Notes:**
+- Compartment labels from flow centrality (Schneider-Mizell et al. 2016)
+- Enables polarity analysis (axon → dendrite, etc.)
+- Available for FAFB, MANC, maleCNS (not BANC)
+
+---
+
+### `fafb_783_synapses.*`
+
+**Content:** Individual synapse locations
+**Formats:** Feather (4.0 GB) | Parquet (1.7 GB, recommended)
+**Each row:** One synaptic connection
+
+| Column | Description |
+|--------|-------------|
+| `pre`, `post` | Neuron IDs |
+| `x`, `y`, `z` | Coordinates in FAFB space (nm) |
+| `prepost` | Link type (0=pre, 1=post) |
+| `syn_top_nt` | Predicted transmitter |
+| `syn_top_nt_p` | Confidence score |
+| `cleft_scores` | Cleft detectability |
+| `connector_id` | Presynapse identifier |
+| `neuropil` | Neuropil region(s) |
+| `label` | Compartment annotation |
+
+**Notes:**
+- Use Parquet for faster loading
+- Coordinates in native FAFB space
+
+---
 
-meta - each row is a unique neuron
-========================================================================================
+### Skeleton Directories
 
-**fafb_783_id**   :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For FAFB this is a root_id for version 783 (published version).
+| Directory | Space | Description |
+|-----------|-------|-------------|
+| `fafb_banc_space_swc/` | BANC | FAFB neurons in BANC space (cross-dataset comparisons) |
+| `fafb_fafb_space_swc/` | FAFB | Native space (highest resolution) |
+| `hemibrain_banc_space_swc/` | BANC | Hemibrain-matched neurons |
+| `hemibrain_hemibrain_raw_space_swc/` | Hemibrain | Hemibrain-matched (native) |
 
-**cell_type**     :   the name of the matched neuron from FAFB (if brain neuron or DN) or MANC (if VNC neuron or AN), hierarchical below cell_sub_class. Exceptions exist where names were further split to define single cell types
+**Format:** One `.swc` file per neuron
 
-**side**    :   the side of the CNS; "L" = left, "R" = right
+---
 
-**hemilineage** :   the hemilineage to which the neuron is thought to belong (ito_lee_hemilineage, hartenstein_hemilineage are the same, but represent two different brain naming schemes)
+## Curated Subsets
 
-**nerve**   :   entry or exit nerve
+| Subset | Focus | Circuits |
+|--------|-------|----------|
+| **antennal_lobe** | Olfaction | ORNs, PNs, local neurons |
+| **central_complex** | Navigation | Ring, columnar neurons |
+| **mushroom_body** | Memory | Kenyon cells, MBONs, DANs |
+| **optic** | Vision | Lobula, medulla, motion |
+| **suboesophageal_zone** | Feeding/tactile | Gustatory, motor |
 
-**region**  :   region of the CNS; all neurons with arbours in the optic lobe are optic_lobe, all neurons that fully transit the neck connective between the brain and VNC are neck_connective
+---
 
-**flow** : from the perspective of the whole CNS, whether the neuron is afferent, efferent, or intrinsic
+## Data Provenance
 
-**super_class** : coarse division, hierarchical below flow
+- **Source:** FAFB FlyWire v783
+- **Processing:** Harmonized to BANC schema
+- **Citations:**
+  - Dorkenwald et al. (2024) "Neuronal wiring diagram" *Nature*
+  - Schlegel et al. (2024) "Whole-brain annotation" *Nature*
 
-**cell_class** : hierarchical below super_class
+---
 
-**cell_sub_class** : hierarchical below cell_class
+## Loading Examples
 
-**neurotransmitter_predicted**     :   the most commonly predicted (modal) transmitter, or the most commonly predicted when weighted by pre-synapse confidence score (conf_nt)
+**Python:**
+```python
+import pandas as pd
 
+meta = pd.read_feather("gs://sjcabs_2025_data/fafb/fafb_783_meta.feather")
+edgelist = pd.read_feather("gs://sjcabs_2025_data/fafb/fafb_783_simple_edgelist.feather")
+split_edgelist = pd.read_feather("gs://sjcabs_2025_data/fafb/fafb_783_split_edgelist.feather")
+synapses = pd.read_parquet("gs://sjcabs_2025_data/fafb/fafb_783_synapses.parquet")
+```
 
-synapses - each row is a unique synaptic connection
-========================================================================================
+**R:**
+```r
+library(arrow)
 
-**pre**  :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For FAFB this is a root_id for BANC, root_783 for FAFB, cell_id for FANC and bodyid for MANC and Hemibrain.
+meta <- read_feather("gs://sjcabs_2025_data/fafb/fafb_783_meta.feather")
+edgelist <- read_feather("gs://sjcabs_2025_data/fafb/fafb_783_simple_edgelist.feather")
+split_edgelist <- read_feather("gs://sjcabs_2025_data/fafb/fafb_783_split_edgelist.feather")
+synapses <- read_parquet("gs://sjcabs_2025_data/fafb/fafb_783_synapses.parquet")
+```
 
-**post** :   the neuron ID for the target (i.e. downstream, pesynaptic) neuron. For FAFB this is a root_id for BANC, root_783 for FAFB, cell_id for FANC and bodyid for MANC and Hemibrain.
+---
 
-**x,y,z**   :   the  position of the connection in nanometer space for the given brain. For the franenbrain, with will be MANC or FAFB depending on the neuron.
+## Cross-Dataset Notes
 
-**prepost** :   whether the link is pre- (0, i.e. output synapse) or post (1, i.e. input) relative to post_id. In the presynapses table, all prepost==0, in the postsynaptic table, all prepost==1.
+**FAFB vs BANC:**
+- FAFB: Brain only (139K neurons)
+- BANC: Brain + VNC (169K neurons)
+- ~139K brain neurons matched between datasets
+- Use BANC-space skeletons for spatial comparisons
 
-**syn_top_nt**  :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction. Only valid for FAFB.
-
-**syn_top_nt_p**    :   the confidence score assicated with syn_top_nt. Only valid for FAFB.
-
-**gaba**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for gaba. Only valid for FAFB.
-
-**glutamate**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for glutamate. Only valid for FAFB.
-
-**acetylcholine**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for acetylcholine. Only valid for FAFB.
-
-**octopamine**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for octopamine. Only valid for FAFB.
-
-**serotonin**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for serotonin. Only valid for FAFB.
-
-**dopamine**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for dopamine. Only valid for FAFB.
-
-**scores**  :   the  Buhmamnn prediction score for the synapse, unsure of definition. Only valid for FAFB.
-
-**cleft_scores**    :   a score that indicates how discriminable the synaptic cleft is. More useful than `size` or `scores`.
-
-**size**    :   the number of voxels (?) in the detected synapse.
-
-**id**  :   the index for the Buhmann synapse in the original .sql table.
-
-**connector_id**  :   a unique identifier for the presynapse to which this link is associated.
-
-**status**  :   whether the synaptic link seems good, or whether it is suspicious because it falls outside the neuropil, is on a non-synaptic cable, etc.
-
-**strahler_order**  :   the Strahler order of the branch to which this synapse is attached
-
-**label**   :   the compartment to which this synapse is attached, can be axon, dendrite, primary dendrite, primary neurite, unknown, or soma.
-
-**neuropil** :   the neuropil volume inside of which this synaptic link can be found. If inside multiple volumes, they appear separated by a comma. 
-
-
-edgelist_simple - each row is a unique neuron-neuron connection
-========================================================================================
-
-**pre**     :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For banc this is a root_id for BANC, root_746 for banc, cell_id for FANC and bodyid for MANC and Hemibrain.
-
-**post**    :   the neuron ID for the target (i.e. downstream, pesynaptic) neuron. For banc this is a root_id for BANC, root_746 for banc, cell_id for FANC and bodyid for MANC and Hemibrain.
-
-**count**   :   the number of synaptic links that connect pre to post. For banc a cleft_score threshold of 50 has been applied.
-
-**norm**    :   the normalised weight of a connection, this is count/post_count, where post_count are the total number of inputs to the target neuron (post).
-
-**total_input** :   the total number of inputs to the target neuron (post).
-
-
-edgelist - each row is a unique compartment-compartment connection
-========================================================================================
-***NOTE*** *each 'compartment' on each row is an axon/dendrite/primary neurite/primary dendrite/unknown cable for a neuron*
-
-**pre**     :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For FAFB this is a root_id for BANC, root_783 for FAFB, cell_id for FANC and bodyid for MANC and Hemibrain.
-
-**post**    :   the neuron ID for the target (i.e. downstrea, pesynaptic) neuron. For FAFB this is a root_id for BANC, root_783 for FAFB, cell_id for FANC and bodyid for MANC and Hemibrain.
-
-**pre_count**  :   the total number of oututs from the target neuron (post) NOT the source neuron (pre). *I understand this is a little confusing, and will seek to change the column names to use pre/post for synapses and sourcd/target for neurons in the future.*
-
-**post_count** :   the total number of inputs to the target neuron (post).
-
-**pre_label**  :   the compartment of the presynaptic neuron (source), can be axon, dendrite, primary dendrite, primary neurite, unknown, soma.
-
-**post_label**  :   the compartment of the postsynaptic neuron (target), can be axon, dendrite, primary dendrite, primary neurite, unknown, soma.
-
-**pre_label_count**  :   the total number of oututs from the specified target neuron compartment (post+post_label) NOT the specified target neuron compartment (post+post_label). *I understand this is a little confusing, and will seek to change the column names to use pre/post for synapses and sourcd/target for neurons in the future.*
-
-**post_label_count** :   the total number of inputs to the specified target neuron compartment (post+post_label).
-
-**count**   :   the number of synaptic links that connect pre+pre_label to post+post_label. For FAFB a cleft_score threshold of 50 has been applied.
-
-**norm**    :   the normalised weight of a connection, this is count/post_count NOT post_label_count, where post_count is the total number of inputs to the target neuron (post).
-
-**norm_label**  :   the normalised weight of a connection, this is count/post_label_count NOT post_count, where post_label_count is the number of inputs to the target neuron compartment (post_post_label).
-
-*other coumns with information from 'meta' may exist for convenience, with pre/post appended to the name to idicate labelled compartment*
-
-
-skeletons - each .swc file is a unique neuron, each row in the file is a point in 3D space
-========================================================================================
-
-**PointNo**  :   Point identifier. A positive integer.
-**Label**  :   Type identifier. The basic set of types used in NeuroMorpho.org SWC files is:
--1  - root
- 0  - undefined
- 1  - soma
- 2  - axon
- 3  - dendrite
- 4  - apical dendrite
- 5-6 - custom
- 7 - primary dendrite
- 9 - primary neurite
-**X,Y,Z**  :   3D point in nm in BANC space (as this covers both brain and nerve cord).
-**R**  :   Radius in nanometers (half the cylinder thickness).
-**Parent**  :   Parent point identifier. This defines how points are connected to each other. In a tree, multiple points can have the same ParentID. The first point in the file must have a ParentID equal to -1, which represents the root point. Parent samples must be defined before they are being referred to. By counting how many points refer to the a given parent, the number of its children can be computed.
-
-
-dcv_cell - each row is a unique DCV detection from anywhere in a FAFB neuron
-========================================================================================
-
-**id**   :   a unique identifer for the DCV
-
-**sv_id**   :  the supervoxel ID por this DCV's centroid 
-
-**root_784, segment_id**   :   the unique identifier or the associated FAFB-FlyWire neuron
-
-**x,y,z**  :   coordinates in nanomaters for the DCV's centroid
-
-**size**    :   number of pixels in the detection, from in the 4x4x40nm v14 FAFB volume,not flywire's v14.1
-
-**confidence**   :   a confidenced score from the detection network, for this DCV
-
-
-dcv_soma - each row is a unique DCV detection from in a FAFB neuron soma
-========================================================================================
-
-**x,y,z**   : coordinates in FAFB v14.1, FlyWire space, nanometers
-
-**center_x,center_y,center_z**   : centre of soma in FAFB v14.1, FlyWire space, raw
-
-**index**   : section index vesicle is found in
-
-**area**   : number of pixels
-
-**eccentricity**   : a measure of how circular or not the segmentation is
-
-**luminance**   : mean of pixels
-
-**contrast**   : standard deviation of pixels
-
-**skew**   : skew of pixels
-
-**diameter**   : measure of size along a direction
-
-**orientation**   : angle between x-axis and major axis of an estimate ellipse encompassing segmentation
-
-**perimeter**   : approximate perimeter of object
-
-**centroid**   : centre of segmentation
-
-**centroid_weighted**   : centre of segmentation but using pixel intensities as a weight
-
-**flywire**   : centre coordinate of vesicle in FlyWire space
-
-**flywire_bbox_start**   : the start coordinate of the bounding box of vesicle in flywire space
-
-**flywire_bbox_end**   : the end coordinate of the bounding box of vesicle in flywire space
-
-**fafb**   : centre coordinate of vesicle in FAFB space
-
-**fafb_bbox_start**   : the start coordinate of the bounding box of vesicle in FAFB space
-
-**fafb_bbox_end**   : the end coordinate of the bounding box of vesicle in FAFB space   
-
-
-
-
+**FAFB vs Hemibrain:**
+- FAFB: Complete brain
+- Hemibrain: ~Half central brain (~25K neurons)
+- Matched neurons in `hemibrain_*` directories
