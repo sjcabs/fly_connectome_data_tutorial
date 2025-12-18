@@ -311,9 +311,9 @@ More generally, if you use these datasets in your work, please cite the original
 
 **BANC:** Bates, A.S., Phelps, J.S., Kim, M., Yang, H.H., Matsliah, A., Ajabi, Z., Perlman, E., et al. (2025). Distributed control circuits across a brain-and-cord connectome. *bioRxiv*, 2025.07.31.667571. https://doi.org/10.1101/2025.07.31.667571
 
-**FAFB (proofreading):** Dorkenwald, S., Matsliah, A., Sterling, A.R., Schlegel, P., ... Bates, A.S., ... et al. (2024). Neuronal wiring diagram of an adult brain. *Nature*, 634(8032), 124-138. https://doi.org/10.1038/s41586-024-07686-5
+**FAFB:** Schlegel, P., Yin, Y., Bates, A.S., Dorkenwald, S., Eichler, K., Brooks, P., Han, D.S., et al. (2024). Whole-brain annotation and multi-connectome cell typing of Drosophila. *Nature*, 634(8032), 139-152. https://doi.org/10.1038/s41586-024-07686-5
 
-**FAFB (annotations):** Schlegel, P., Yin, Y., Bates, A.S., Dorkenwald, S., Eichler, K., Brooks, P., Han, D.S., et al. (2024). Whole-brain annotation and multi-connectome cell typing of Drosophila. *Nature*, 634(8032), 139-152. https://doi.org/10.1038/s41586-024-07686-5
+**FAFB:** Dorkenwald, S., Matsliah, A., Sterling, A.R., Schlegel, P., ... Bates, A.S., ... et al. (2024). Neuronal wiring diagram of an adult brain. *Nature*, 634(8032), 124-138. https://doi.org/10.1038/s41586-024-07686-5
 
 **MANC:** Takemura, S., et al. (2024). A Connectome of the Male Drosophila Ventral Nerve Cord. *eLife*. https://doi.org/10.7554/eLife.97769
 
