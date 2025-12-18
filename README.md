@@ -10,9 +10,15 @@ This tutorial provides foundational skills for loading, analysing, and visualisi
 
 # Why learn from this tutorial?
 
-This tutorial offers 1. specially curated data for multi-connectome analyses, 2. concise python and R code for simple bu effective analyses of connectome data 3. guides you through some general principles of exploratory connectomics analysis that should be useful. 
+This tutorial offers: 
 
-We hope it constitutes an effective guide. Please share, and launch a GitHub issue to help resolve problems. Please see our citation section for currect conduct.
+1. specially curated data for multi-connectome analyses.
+
+2. concise python and R code for simple but effective analyses of connectome data. 
+
+3. guides you through some general principles of exploratory connectomics analysis that should be useful. 
+
+We hope it constitutes an effective guide. Please share and launch GitHub issues to help resolve problems. Please see our citation section for currect conduct.
 
 ---
 
