@@ -1,139 +1,203 @@
+# BANC Dataset Documentation
+
 ## Overview
 
-This location contains data for the Full Adult Fly Brain (banc) project.
+**BANC (Brain and Nerve Cord)** - First complete synapse-resolution connectome spanning both brain and ventral nerve cord.
 
-We are here:
+**Publication:** Bates et al. (2025) *bioRxiv* | **Version:** 746 (published)
+**Scale:** 168,791 neurons | ~155 million synapses | ~114 million connections
+**Location:** `gs://sjcabs_2025_data/banc/`
+
+## File Structure
 
 ```
-sjcabs_data/
-├── banc/          
-│   ├── banc_746_meta.feather     
-│   ├── banc_746_edgelist_simple.feather     
-│   ├── banc_746_synapses.feather 
-│   ├── banc_746_skeletons_in_banc_space.zip
-│   ├── abdominal_neuromere/ * data subset for abdominal control circuits
-│   ├── antennal_lobe/ * data subset for olfactory circuits of the anennal lobe
-│   ├── central_complex/ * data subset for navigation circuits of the central complex
-│   ├── front_leg/ * data subset for control of the front leg
-│   ├── mushroom_body/ * data subset for associative memory circuits of the mushroom body
-│   ├── optic/ * data subset for associative memory circuits of the optic lobe
-│   └── suboesophageal_zone/ * data subset for tactile and feeding circuits of the lower brain
-└── ...
+banc/
+├── banc_746_meta.feather                    # 9.8 MB - Neuron metadata
+├── banc_746_simple_edgelist.feather         # 3.4 GB - Neuron connectivity
+├── banc_746_synapses.parquet                # 8.7 GB - Individual synapses
+├── banc_banc_space_l2_swc/                  # 3D neuron skeletons
+├── neuropils/                               # Neuropil mesh files
+├── obj/                                     # Additional mesh objects
+└── [Curated Subsets:]
+    ├── abdominal_neuromere/                 # Abdominal control circuits
+    ├── antennal_lobe/                       # Olfactory circuits
+    ├── central_complex/                     # Navigation circuits
+    ├── front_leg/                           # Front leg motor control
+    ├── mushroom_body/                       # Associative memory circuits
+    ├── optic/                               # Visual processing circuits
+    └── suboesophageal_zone/                 # Feeding and tactile circuits
 ```
 
-For each dataset, feather file contain:
-- `meta` - Neuron metadata and annotations (in banc, subsetted to only "proofread" neurons)
-- `edgelist_simple` - Neuron-to-neuron connections
-- `edgelist` - Compartment-to-compartment connections  
-- `synapses` - Detailed synapse information (in banc, subsetted to presynaptic links with cleft_score > 50 on proofead neurons)
-- `skeletons` - banc high-resolution skeletons in SWC format
+---
 
-meta - each row is a unique neuron
-========================================================================================
+## File Descriptions
 
-**banc_746_id**   :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For banc this is a root_id for version 746 (published version).
+### `banc_746_meta.feather`
 
-**cell_type**     :   the name of the matched neuron from banc (if brain neuron or DN) or MANC (if VNC neuron or AN), hierarchical below cell_sub_class. Exceptions exist where names were further split to define single cell types
+**Content:** Neuron metadata and annotations
+**Dimensions:** 168,791 rows × 18 columns
+**Each row:** One neuron
 
-**side**    :   the side of the CNS; "L" = left, "R" = right
+#### Key Columns
 
-**hemilineage** :   the hemilineage to which the neuron is thought to belong (ito_lee_hemilineage, hartenstein_hemilineage are the same, but represent two different brain naming schemes)
+| Column | Description |
+|--------|-------------|
+| `banc_746_id` | Root ID for the neuron in BANC version 746 (published) |
+| `supervoxel_id` | Original supervoxel identifier |
+| `region` | CNS region (central_brain, optic_lobe, ventral_nerve_cord, neck_connective) |
+| `side` | Laterality (left, right, midline) |
+| `hemilineage` | Developmental hemilineage (e.g., 00A, 01B, VPNp1_medial) |
+| `nerve` | Entry/exit nerve (if applicable) |
+| `flow` | Information flow direction (intrinsic, afferent, efferent) |
+| `super_class` | Coarse functional classification (13 types) |
+| `cell_class` | Intermediate classification (115 types) |
+| `cell_sub_class` | Fine classification (hierarchical) |
+| `cell_type` | Cell type name (11,136 types) |
+| `neurotransmitter_predicted` | Predicted transmitter (acetylcholine, gaba, glutamate, etc.) |
+| `neurotransmitter_score` | Confidence score for transmitter prediction (0-1) |
+| `cell_function` | Functional category (e.g., olfactory, motor, visual) |
+| `cell_function_detailed` | Detailed functional annotation |
+| `body_part_sensory` | Sensory target (if sensory neuron) |
+| `body_part_effector` | Motor target (if motor neuron) |
+| `status` | Quality flag (empty = good, TRACING_ISSUE_* = potential issue) |
 
-**nerve**   :   entry or exit nerve
+**Notes:**
+- Metadata based on harmonized BANC/FAFB/MANC cell type matching
+- Neurotransmitter predictions from Eckstein et al. (2024) Cell
 
-**region**  :   region of the CNS; all neurons with arbours in the optic lobe are optic_lobe, all neurons that fully transit the neck connective between the brain and VNC are neck_connective
+---
 
-**flow** : from the perspective of the whole CNS, whether the neuron is afferent, efferent, or intrinsic
+### `banc_746_simple_edgelist.feather`
 
-**super_class** : coarse division, hierarchical below flow
+**Content:** Neuron-to-neuron connectivity matrix
+**Dimensions:** 113,981,973 rows × 5 columns
+**Each row:** One neuron → neuron connection
 
-**cell_class** : hierarchical below super_class
+#### Columns
 
-**cell_sub_class** : hierarchical below cell_class
+| Column | Description |
+|--------|-------------|
+| `pre` | Presynaptic (source) neuron ID |
+| `post` | Postsynaptic (target) neuron ID |
+| `count` | Number of synapses connecting pre → post |
+| `norm` | Normalized weight: `count / total_input` |
+| `total_input` | Total input synapses to target neuron |
 
-**neurotransmitter_predicted**     :   the most commonly predicted (modal) transmitter, or the most commonly predicted when weighted by pre-synapse confidence score (conf_nt)
+**Notes:**
+- Only includes synapses with `cleft_score > 50` (high confidence)
+- Total synapses across all connections: ~155 million
+- Self-connections (autapses) included
 
+**Example:**
+```
+pre                post               count  norm      total_input
+720575941509220642 720575941277394247 1      1.0       1
+720575941526837604 720575940420901192 1      1.0       1
+720575941508750721 720575941576493706 1      0.5       2
+```
 
-synapses - each row is a unique synaptic connection
-========================================================================================
+---
 
-**pre**  :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For banc this is a root_id for BANC, root_746 for banc, cell_id for FANC and bodyid for MANC and Hemibrain.
+### `banc_746_synapses.parquet`
 
-**post** :   the neuron ID for the target (i.e. downstream, pesynaptic) neuron. For banc this is a root_id for BANC, root_746 for banc, cell_id for FANC and bodyid for MANC and Hemibrain.
+**Content:** Individual synapse locations and properties
+**Format:** Parquet (columnar, for large data)
+**Size:** 8.7 GB
+**Each row:** One synaptic connection (pre→post)
 
-**x,y,z**   :   the  position of the connection in nanometer space for the given brain. For the franenbrain, with will be MANC or banc depending on the neuron.
+#### Key Columns
 
-**prepost** :   whether the link is pre- (0, i.e. output synapse) or post (1, i.e. input) relative to post_id. In the presynapses table, all prepost==0, in the postsynaptic table, all prepost==1.
+| Column | Description |
+|--------|-------------|
+| `pre` | Presynaptic neuron ID |
+| `post` | Postsynaptic neuron ID |
+| `x`, `y`, `z` | Synapse coordinates in BANC space (nm) |
+| `prepost` | Link type (0 = presynapse, 1 = postsynapse) |
+| `syn_top_nt` | Predicted neurotransmitter at this synapse |
+| `syn_top_nt_p` | Confidence score for transmitter |
+| `acetylcholine`, `gaba`, `glutamate`, `dopamine`, `serotonin`, `octopamine` | Individual transmitter scores |
+| `cleft_scores` | Synaptic cleft detectability score |
+| `size` | Synapse size (voxels) |
+| `connector_id` | Unique presynapse identifier (multiple posts can share one connector) |
+| `neuropil` | Neuropil region(s) containing synapse |
+| `label` | Compartment annotation (axon, dendrite, soma, unknown) |
+| `strahler_order` | Branch order in skeleton |
+| `status` | Quality flag |
 
-**syn_top_nt**  :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction. Only valid for banc.
+**Notes:**
+- Synapse-level transmitter predictions from Eckstein et al. (2024)
+- Filtered to `cleft_score > 50` for published dataset
+- Coordinates in BANC space (covers brain and VNC)
 
-**syn_top_nt_p**    :   the confidence score assicated with syn_top_nt. Only valid for banc.
+---
 
-**gaba**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for gaba. Only valid for banc.
+### `banc_banc_space_l2_swc/`
 
-**glutamate**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for glutamate. Only valid for banc.
+**Content:** 3D neuron skeletons in SWC format
+**Format:** One `.swc` file per neuron (named by `banc_746_id`)
+**Coordinate space:** BANC space (nm)
 
-**acetylcholine**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for acetylcholine. Only valid for banc.
+#### SWC File Format
 
-**octopamine**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for octopamine. Only valid for banc.
+Each `.swc` file contains point cloud representation of neuron morphology:
 
-**serotonin**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for serotonin. Only valid for banc.
+| Column | Description |
+|--------|-------------|
+| `PointNo` | Unique point identifier (positive integer) |
+| `Label` | Point type: -1 (root), 0 (undefined), 1 (soma), 2 (axon), 3 (dendrite), 7 (primary dendrite), 9 (primary neurite) |
+| `X`, `Y`, `Z` | 3D coordinates in BANC space (nm) |
+| `R` | Radius (nm) - half the cylinder thickness |
+| `Parent` | Parent point ID (-1 for root, defines tree structure) |
 
-**dopamine**    :   the Eckstein and Bates et al. 2024 synapse-level neurotransmitter prediction score for dopamine. Only valid for banc.
+**Notes:**
+- Level 2 (L2) skeletons: Simplified from full resolution for computational efficiency
+- BANC space encompasses both brain and VNC (unlike FAFB or MANC spaces)
 
-**scores**  :   the  Buhmamnn prediction score for the synapse, unsure of definition. Only valid for banc.
+---
 
-**cleft_scores**    :   a score that indicates how discriminable the synaptic cleft is. More useful than `size` or `scores`.
+## Curated Subsets
 
-**size**    :   the number of voxels (?) in the detected synapse.
+Each subset directory contains filtered metadata, edgelists, and synapse data for specific circuits:
 
-**id**  :   the index for the Buhmann synapse in the original .sql table.
+| Subset | Focus | Key Circuits |
+|--------|-------|--------------|
+| **abdominal_neuromere** | Abdominal control | Motor neurons, sensory neurons, premotor circuits |
+| **antennal_lobe** | Olfaction | ORNs, PNs, local neurons |
+| **central_complex** | Navigation | Ring neurons, columnar neurons, heading circuits |
+| **front_leg** | Leg control | Motor neurons, sensory feedback, CPGs |
+| **mushroom_body** | Memory | Kenyon cells, MBONs, DANs |
+| **optic** | Vision | Lobula, medulla, wide-field neurons |
+| **suboesophageal_zone** | Feeding/tactile | Gustatory, mechanosensory, motor circuits |
 
-**connector_id**  :   a unique identifier for the presynapse to which this link is associated.
+**Usage:** Ideal for focused analyses without loading the full connectome.
 
-**status**  :   whether the synaptic link seems good, or whether it is suspicious because it falls outside the neuropil, is on a non-synaptic cable, etc.
+---
 
-**strahler_order**  :   the Strahler order of the branch to which this synapse is attached
+## Data Provenance
 
-**label**   :   the compartment to which this synapse is attached, can be axon, dendrite, primary dendrite, primary neurite, unknown, or soma.
+- **Source:** BANC FlyWire project (version 746)
+- **Processing:** Harmonized to unified metadata schema (see `data/meta_data_entries.csv`)
+- **Quality:** Synapses filtered by `cleft_score > 50`
+- **Citation:** Bates et al. (2025) "Distributed control circuits across a brain-and-cord connectome" *bioRxiv*
 
-**neuropil** :   the neuropil volume inside of which this synaptic link can be found. If inside multiple volumes, they appear separated by a comma. 
+---
 
+## Loading Examples
 
-edgelist_simple - each row is a unique neuron-neuron connection
-========================================================================================
+**Python:**
+```python
+import pandas as pd
 
-**pre**     :   the neuron ID for the source (i.e. upstream, presynaptic) neuron. For banc this is a root_id for BANC, root_746 for banc, cell_id for FANC and bodyid for MANC and Hemibrain.
+meta = pd.read_feather("gs://sjcabs_2025_data/banc/banc_746_meta.feather")
+edgelist = pd.read_feather("gs://sjcabs_2025_data/banc/banc_746_simple_edgelist.feather")
+synapses = pd.read_parquet("gs://sjcabs_2025_data/banc/banc_746_synapses.parquet")
+```
 
-**post**    :   the neuron ID for the target (i.e. downstream, pesynaptic) neuron. For banc this is a root_id for BANC, root_746 for banc, cell_id for FANC and bodyid for MANC and Hemibrain.
+**R:**
+```r
+library(arrow)
 
-**count**   :   the number of synaptic links that connect pre to post. For banc a cleft_score threshold of 50 has been applied.
-
-**norm**    :   the normalised weight of a connection, this is count/post_count, where post_count are the total number of inputs to the target neuron (post).
-
-**total_input** :   the total number of inputs to the target neuron (post).
-
-
-skeletons - each .swc file is a unique neuron, each row in the file is a point in 3D space
-========================================================================================
-
-**PointNo**  :   Point identifier. A positive integer.
-**Label**  :   Type identifier. The basic set of types used in NeuroMorpho.org SWC files is:
--1  - root
- 0  - undefined
- 1  - soma
- 2  - axon
- 3  - dendrite
- 4  - apical dendrite
- 5-6 - custom
- 7 - primary dendrite
- 9 - primary neurite
-**X,Y,Z**  :   3D point in nm in BANC space (as this covers both brain and nerve cord).
-**R**  :   Radius in nanometers (half the cylinder thickness).
-**Parent**  :   Parent point identifier. This defines how points are connected to each other. In a tree, multiple points can have the same ParentID. The first point in the file must have a ParentID equal to -1, which represents the root point. Parent samples must be defined before they are being referred to. By counting how many points refer to the a given parent, the number of its children can be computed.
-
-   
-
-
-
-
+meta <- read_feather("gs://sjcabs_2025_data/banc/banc_746_meta.feather")
+edgelist <- read_feather("gs://sjcabs_2025_data/banc/banc_746_simple_edgelist.feather")
+synapses <- read_parquet("gs://sjcabs_2025_data/banc/banc_746_synapses.parquet")
+```
