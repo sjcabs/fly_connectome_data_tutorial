@@ -936,3 +936,45 @@ batch_read_swc_from_zip <- function(zip_path, swc_filenames,
 
   return(result)
 }
+
+
+# Function to download and read SWC file
+read_swc_neuron <- function(neuron_id, swc_path, temp_dir) {
+  tryCatch({
+    # Find SWC file for this neuron
+    swc_pattern <- paste0(neuron_id, ".swc")
+    gsutil_cmd <- paste("gsutil ls", swc_path, "| grep", swc_pattern)
+    swc_file <- system(gsutil_cmd, intern = TRUE, ignore.stderr = TRUE)
+    
+    if (length(swc_file) == 0) return(NULL)
+    
+    # Download to temp location
+    temp_file <- file.path(temp_dir, basename(swc_file))
+    download_cmd <- paste("gsutil cp", swc_file, temp_file)
+    system(download_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+    
+    # Read SWC
+    if (file.exists(temp_file)) {
+      neuron <- read.neuron(temp_file)
+      return(neuron)
+    }
+    return(NULL)
+  }, error = function(e) {
+    return(NULL)
+  })
+}
+
+# Custom cosine similarity for sparse matrices
+cosine_similarity_sparse <- function(X) {
+  # X is a sparse matrix (features x samples)
+  # Normalize each column (sample)
+  col_norms <- sqrt(colSums(X^2))
+  col_norms[col_norms == 0] <- 1  # Avoid division by zero
+  
+  X_norm <- t(t(X) / col_norms)
+  
+  # Compute cosine similarity
+  sim_matrix <- as.matrix(crossprod(X_norm))
+  
+  return(sim_matrix)
+}
