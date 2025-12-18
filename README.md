@@ -255,29 +255,65 @@ gsutil ls -lh gs://sjcabs_2025_data/banc/banc_746_synapses.feather
 
 ## Tutorial Path
 
-This tutorial follows a progressive learning path. It is designed to take about 2 hours. 
+This tutorial follows a progressive learning path designed to take about 2 hours for the core content, with optional extensions for deeper exploration.
 
-### 1. Data access
-- Find and read our data files, which are stored as .swc (morphologies), .parquet (synapses) or .feather (meta, connectivity)
-- Test you can do this across multiple datasets.
+### Tutorial 01: Data Access (30 minutes)
 
-### 2. Neuronal Morphology
-- Load and visualise 3D neuron skeletons
-- Transform coordinates between native dataset spaces and BANC space
-- Visualise synaptic distributions along neurites
-- Extension: determine axon/dendrite compartments using flow centrality ([navis](https://navis.readthedocs.io/en/latest/source/tutorials/morph_analysis.html) | [natverse](http://natverse.org/nat/reference/flow.centrality.html) implementations)
+**Core Tutorial:**
+- Understanding file formats (Feather vs Parquet)
+- Loading metadata and exploring hierarchical classifications
+- Working with Google Cloud Storage and local files
+- Filtering and characterizing neurons by connectivity patterns
+- Example: Mushroom body calyx neurons
 
-### 3. Connectivity Networks
-- Load and query edgelists (connectivity matrices)
-- Build and visualise network graphs
-- Calculate network properties (hubs, modules, motifs)
-- Identify pathways between neuron populations
+**Extensions:**
+- Your Turn: Apply analysis to different datasets (maleCNS, FAFB)
+- Compare biological vs technical differences between datasets
 
-### 4. Influence Quantification
-- Calculate influence scores from sensory neurons to effector neurons
-- Understand multi-hop indirect influences through network paths
-- Compare influence patterns across datasets
-- Relate structural connectivity to functional impact
+### Tutorial 02: Neuron Morphology (30 minutes)
+
+**Core Tutorial:**
+- Loading and visualizing 3D neuron skeletons (.swc files)
+- Reading neuropil meshes for spatial context
+- Co-plotting neurons across datasets
+- NBLAST morphological similarity analysis
+- Hierarchical clustering of neuron morphologies
+
+**Extensions:**
+- Your Turn: Analyze different neuron populations
+- Extension 1: Template brain transformations (MANC → JRCVNC2018F → BANC)
+- Extension 2: Axon-dendrite splits using flow centrality
+  - Compartment labels from graph-theoretic algorithm ([Schneider-Mizell et al. 2016](https://elifesciences.org/articles/12059))
+  - Synapse classification by compartment
+  - Available for FAFB, MANC, maleCNS (not yet BANC)
+
+### Tutorial 03: Connectivity Analyses (40 minutes)
+
+**Core Tutorial:**
+- Loading and querying edgelists (connectivity matrices)
+- Neurotransmitter prediction and signed connectivity
+- Basic network statistics (degree distributions, weight correlations)
+- Connectivity matrices and heatmaps
+- Sensory outputs and effector inputs analysis
+
+**Extensions:**
+- Your Turn: Analyze different brain regions
+- Connectivity-based clustering (cosine similarity, UMAP)
+- Cluster composition and network visualization
+- Morphological analysis of connectivity clusters
+
+### Tutorial 04: Indirect Connectivity and Influence (20 minutes)
+
+**Core Tutorial:**
+- Understanding influence scores and random walks through connectomes
+- Calculating sensory → dopaminergic neuron influence
+- Influence heatmaps and UMAP visualization
+- Interpreting multi-hop connectivity patterns
+
+**Extensions:**
+- Your Turn: Different source/target neuron populations
+- Extension 1: Olfactory channel influence on pC1 neurons (BANC vs maleCNS)
+- Extension 2: Abdominal neuromere sensory-effector influence patterns
 
 ---
 
