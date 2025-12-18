@@ -2,9 +2,9 @@
 
 Tutorial materials for working with Drosophila connectome datasets at the [Winter School on Computational Approaches in Biological Sciences (SJCABS)](https://sjcabs.com/). We will work with all the major, dense connectome datasets of 2025.
 
-**Instructors:** Sven Dorkenwald & Alexander Bates
+**Instructors:** [Sven Dorkenwald](https://scholar.google.com/citations?user=sGHphbYAAAAJ&hl=en) & [Alexander Bates](https://scholar.google.com/citations?user=BOVTiXIAAAAJ&hl=en)
 
-This tutorial provides foundational skills for loading, analysing, and visualising connectome data that will be used throughout the workshop. You'll learn to work with neuronal morphologies, synaptic connectivity, and network analysis across multiple fly brain and nerve cord datasets.
+This tutorial provides foundational skills for loading, analysing, and visualising connectome data that will be used throughout the workshop. You'll learn to work with neuronal morphologies, synaptic connectivity, and network analysis across multiple fly brain and nerve cord datasets. Key contributors to the tools used in, and to prepare, this workshop include [Philipp Schlegel](https://scholar.google.com/citations?user=_JMLZbcAAAAJ&hl=en) and [Greg Jefferis](https://scholar.google.com/citations?user=cuXoCA8AAAAJ&hl=en).
 
 ---
 
