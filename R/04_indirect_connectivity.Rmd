@@ -287,7 +287,7 @@ all_influence_scores_ct <- all_influence_scores %>%
               distinct(cell_sub_class, .keep_all = TRUE) %>%
               select(source=cell_sub_class, source_class = cell_class),
             by="source") %>%
-  group_by(source_class, target_type) %>%
+  group_by(source, target_type) %>%
    summarise(
     influence = sum(`Influence_score_(unsigned)`, na.rm = TRUE),
     adjusted_influence = log(sum(influence, na.rm = TRUE))+24,
@@ -295,25 +295,26 @@ all_influence_scores_ct <- all_influence_scores %>%
     n_targets = n(),
     .groups = "drop"
   ) %>%
-  filter(!is.na(target_type), !is.na(source_class))
+  filter(!is.na(target_type), !is.na(source))
 
 # Show top influences
 all_influence_scores_ct %>%
   arrange(desc(adjusted_influence)) %>%
-  select(source_class, target_type, adjusted_influence, n_targets) %>%
+  select(source, target_type, adjusted_influence, n_targets) %>%
   head(10)
 ```
 
 ## Visualisation: Influence Heatmap
 
-Let's create an interactive heatmap showing influence from sensory sub-classes to dopamine neuron types:
+Let's create an interactive heatmap showing non-olfactory influence from sensory sub-classes to dopamine neuron types:
 
 ```{r influence_heatmap, fig.width=12, fig.height=10}
 # Create a matrix for heatmap
 influence_matrix <- all_influence_scores_ct %>%
-  select(source_class, target_type, adjusted_influence) %>%
+  filter(!grepl("olfactory_receptor_neuron",source)) %>%
+  select(source, target_type, adjusted_influence) %>%
   pivot_wider(names_from = target_type, values_from = adjusted_influence, values_fill = 0) %>%
-  column_to_rownames("source_class") %>%
+  column_to_rownames("source") %>%
   as.matrix()
 influence_matrix[is.na(influence_matrix)] <- 0
 influence_matrix[is.infinite(influence_matrix)] <- 0
@@ -335,7 +336,7 @@ pheatmap(
   main = "Sensory Influence on MB Dopaminergic Neurons",
   filename = file.path(img_dir, paste0(dataset, "_influence_heatmap.png")),
   width = 10,
-  height = 10
+  height = 16
 )
 
 # Create interactive heatmap with Ward's clustering (no dendrograms shown)
@@ -349,7 +350,7 @@ p_influence_heatmap <- heatmaply(
   ylab = "Source: Sensory Sub-Class",
   showticklabels = c(TRUE, TRUE), 
   hide_colorbar = FALSE,
-  fontsize_row = 8,
+  fontsize_row = 6,
   fontsize_col = 8,
   key.title = "Normalized\nInfluence"
 )
@@ -745,10 +746,16 @@ First, let's look at our abdominal subset, and read the edgelist we have there t
 
 ```{r define_abdominal_sources}
 # Read abdominal ganglion edgelist to get neuron IDs
+dataset <- "banc_746"
+dataset_id <- "banc_746_id"
 subset_name <- "abdominal_neuromere"
 dataset_base <- sub("_[0-9]+$", "", dataset)
 subset_dir <- file.path(data_path, dataset_base, subset_name)
 abdominal_edgelist_path <- file.path(subset_dir, paste0(dataset, "_", subset_name, "_simple_edgelist.feather"))
+
+# Read meta
+meta_path <- construct_path(data_path, dataset, "meta")
+meta <- read_feather_gcs(meta_path, use_gcs = use_gcs)
 
 # Read the edgelist for this subset
 abdominal_edgelist <- read_feather_gcs(abdominal_edgelist_path, use_gcs = use_gcs)

@@ -28,7 +28,8 @@ python3 -m pip install --quiet --upgrade \
 
 # Install navis and neuroscience tools (essential for morphology analysis)
 python3 -m pip install --quiet --upgrade \
-    navis==1.10.0 \
+    navis[all]==1.10.0 \
+    flybrains \
     trimesh \
     pykdtree \
     ncollpyde \
@@ -42,14 +43,22 @@ python3 -m pip install --quiet --upgrade \
     ipywidgets \
     tqdm
 
+# Install CAVE tools for Extension 03 (optional - for downloading meshes from BANC)
+python3 -m pip install --quiet --upgrade \
+    caveclient \
+    meshparty
+
 # Verify key installations
 echo ""
 echo "Verifying installations..."
 python3 -c "import navis; print(f'✓ navis {navis.__version__}')" || echo "✗ navis failed"
+python3 -c "import flybrains; print('✓ navis-flybrains installed')" || echo "✗ navis-flybrains failed"
 python3 -c "import pandas as pd; print(f'✓ pandas {pd.__version__}')" || echo "✗ pandas failed"
 python3 -c "import gcsfs; print('✓ gcsfs installed')" || echo "✗ gcsfs failed"
 python3 -c "import plotly; print('✓ plotly installed')" || echo "✗ plotly failed"
 python3 -c "import trimesh; print('✓ trimesh installed')" || echo "✗ trimesh failed"
+python3 -c "import caveclient; print('✓ caveclient installed (Extension 03)')" || echo "✗ caveclient failed"
+python3 -c "import meshparty; print('✓ meshparty installed (Extension 03)')" || echo "✗ meshparty failed"
 
 echo ""
 echo "========================================="

@@ -172,9 +172,9 @@ def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
     return full_path
 
 
-def read_feather_gcs(path, gcs_fs=None):
+def read_feather_gcs(path, gcs_fs=None, cache_dir=".cache", use_cache=True):
     """
-    Read Feather file from GCS or local path.
+    Read Feather file from GCS or local path with caching support.
 
     Parameters
     ----------
@@ -182,32 +182,92 @@ def read_feather_gcs(path, gcs_fs=None):
         Path to feather file (can start with gs:// for GCS)
     gcs_fs : gcsfs.GCSFileSystem, optional
         GCS filesystem object (required for GCS paths)
+    cache_dir : str
+        Local directory for caching downloaded files (default: .cache)
+    use_cache : bool
+        Whether to use local caching (default: True)
 
     Returns
     -------
     pd.DataFrame
         Loaded data
+
+    Notes
+    -----
+    When use_cache=True and path is a GCS path:
+    - First run: downloads from GCS and saves to cache_dir
+    - Subsequent runs: loads from cache (much faster!)
     """
     if path.startswith("gs://"):
         if gcs_fs is None:
             raise ValueError("gcs_fs required for GCS paths")
 
+        # Generate cache filename
+        cache_filename = path.replace("gs://", "").replace("/", "_")
+        cache_path = os.path.join(cache_dir, cache_filename)
+
+        # Check if cached version exists
+        if use_cache and os.path.exists(cache_path):
+            print(f"📦 Loading from cache: {cache_filename}")
+            df = pd.read_feather(cache_path)
+            print(f"✓ Loaded {len(df):,} rows (cached)")
+            return df
+
+        # Download from GCS with progress
         gcs_path = path.replace("gs://", "")
 
-        with gcs_fs.open(gcs_path, 'rb') as f:
-            df = feather.read_feather(f)
+        print(f"📥 Downloading from GCS: {os.path.basename(gcs_path)}")
 
-        print(f"✓ Loaded {len(df):,} rows")
+        # Get file size for progress bar
+        try:
+            file_info = gcs_fs.info(gcs_path)
+            file_size = file_info.get('size', 0)
+            file_size_mb = file_size / (1024 * 1024)
+            print(f"   Size: {file_size_mb:.1f} MB")
+        except:
+            file_size = None
+
+        # Read with progress indication
+        with gcs_fs.open(gcs_path, 'rb') as f:
+            if file_size:
+                # Wrap file object with tqdm for progress
+                with tqdm(total=file_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
+                    # Read in chunks to show progress
+                    chunks = []
+                    chunk_size = 1024 * 1024  # 1MB chunks
+                    while True:
+                        chunk = f.read(chunk_size)
+                        if not chunk:
+                            break
+                        chunks.append(chunk)
+                        pbar.update(len(chunk))
+
+                    # Combine chunks and parse
+                    content = b''.join(chunks)
+                    df = feather.read_feather(io.BytesIO(content))
+            else:
+                # Fallback without progress
+                df = feather.read_feather(f)
+
+        print(f"✓ Loaded {len(df):,} rows from GCS")
+
+        # Cache for future use
+        if use_cache:
+            os.makedirs(cache_dir, exist_ok=True)
+            df.to_feather(cache_path)
+            print(f"💾 Cached to: {cache_path}")
+
         return df
     else:
+        # Local file
         df = pd.read_feather(path)
         print(f"✓ Loaded {len(df):,} rows")
         return df
 
 
-def read_parquet_gcs(path, gcs_fs=None, columns=None):
+def read_parquet_gcs(path, gcs_fs=None, columns=None, cache_dir=".cache", use_cache=True):
     """
-    Read Parquet file from GCS or local path.
+    Read Parquet file from GCS or local path with caching support.
 
     Parameters
     ----------
@@ -217,24 +277,90 @@ def read_parquet_gcs(path, gcs_fs=None, columns=None):
         GCS filesystem object (required for GCS paths)
     columns : list, optional
         List of columns to load (None = all)
+    cache_dir : str
+        Local directory for caching downloaded files (default: .cache)
+    use_cache : bool
+        Whether to use local caching (default: True)
 
     Returns
     -------
     pd.DataFrame
         Loaded data
+
+    Notes
+    -----
+    When use_cache=True and path is a GCS path:
+    - First run: downloads from GCS and saves to cache_dir
+    - Subsequent runs: loads from cache (much faster!)
     """
     if path.startswith("gs://"):
         if gcs_fs is None:
             raise ValueError("gcs_fs required for GCS paths")
 
+        # Generate cache filename
+        cache_filename = path.replace("gs://", "").replace("/", "_")
+        cache_path = os.path.join(cache_dir, cache_filename)
+
+        # Check if cached version exists
+        if use_cache and os.path.exists(cache_path):
+            print(f"📦 Loading from cache: {cache_filename}")
+            df = pd.read_parquet(cache_path, columns=columns)
+            print(f"✓ Loaded {len(df):,} rows (cached)")
+            return df
+
+        # Download from GCS with progress
         gcs_path = path.replace("gs://", "")
 
-        with gcs_fs.open(gcs_path, 'rb') as f:
-            df = pq.read_table(f, columns=columns).to_pandas()
+        print(f"📥 Downloading from GCS: {os.path.basename(gcs_path)}")
 
-        print(f"✓ Loaded {len(df):,} rows")
+        # Get file size for progress bar
+        try:
+            file_info = gcs_fs.info(gcs_path)
+            file_size = file_info.get('size', 0)
+            file_size_mb = file_size / (1024 * 1024)
+            print(f"   Size: {file_size_mb:.1f} MB")
+        except:
+            file_size = None
+
+        # Read with progress indication
+        with gcs_fs.open(gcs_path, 'rb') as f:
+            if file_size:
+                # Wrap file object with tqdm for progress
+                with tqdm(total=file_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
+                    # Read in chunks to show progress
+                    chunks = []
+                    chunk_size = 1024 * 1024  # 1MB chunks
+                    while True:
+                        chunk = f.read(chunk_size)
+                        if not chunk:
+                            break
+                        chunks.append(chunk)
+                        pbar.update(len(chunk))
+
+                    # Combine chunks and parse
+                    content = b''.join(chunks)
+                    df = pq.read_table(io.BytesIO(content), columns=columns).to_pandas()
+            else:
+                # Fallback without progress
+                df = pq.read_table(f, columns=columns).to_pandas()
+
+        print(f"✓ Loaded {len(df):,} rows from GCS")
+
+        # Cache for future use (save full file even if only some columns were requested)
+        if use_cache:
+            os.makedirs(cache_dir, exist_ok=True)
+            # Re-read full table for caching if columns were specified
+            if columns is not None:
+                with gcs_fs.open(gcs_path, 'rb') as f:
+                    full_df = pq.read_table(f).to_pandas()
+                full_df.to_parquet(cache_path)
+            else:
+                df.to_parquet(cache_path)
+            print(f"💾 Cached to: {cache_path}")
+
         return df
     else:
+        # Local file
         df = pd.read_parquet(path, columns=columns)
         print(f"✓ Loaded {len(df):,} rows")
         return df

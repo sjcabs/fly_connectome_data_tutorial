@@ -786,6 +786,19 @@ if (nrow(vpn_synapses_output_axons) > 0) {
 
 To calculate axon-dendrite splits yourself, explore the split functions in R'd [hemibrainr](https://natverse.org/hemibrainr/reference/flow_centrality.html) and python's [navis](https://github.com/navis-org/navis).
 
+## Extension 3: Plotting neuronal meshes
+
+We do not have mesh data especially prepared for the course, like we do synapses, connectiivty, meta data and neuron skeletons. However, you can read mesh data directly from the major connectome projects, using R packages [`neuprintr`](https://natverse.org/neuprintr/), [`fafbseg`](https://github.com/natverse/fafbseg) and [`bancr`](https://github.com/flyconnectome/bancr?tab=readme-ov-file). 
+
+For example, we can read each of the EPG neurons from the FAFB project and plot them in multi-color.
+
+```{r neuron_meshes}
+library(bancr)
+epg.meta <- meta_full %>% filter(grepl("EPG",cell_type))
+banc.meshes <- banc_read_neuron_meshes(epg.meta$banc_746_id)
+plot3d(banc.meshes, col = rainbow(length(banc.meshes)))
+```
+
 ## Session Information
 
 ```{r session_info}
