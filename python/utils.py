@@ -523,6 +523,157 @@ def save_plot(fig, name, img_dir=None, format='png', **kwargs):
 
 
 # ==============================================================================
+# Neuron Compartment Visualization
+# ==============================================================================
+
+def split_neurons_by_compartment(neurons):
+    """
+    Split neurons by axon/dendrite compartments using Label column from SWC files.
+
+    Parameters
+    ----------
+    neurons : navis.NeuronList or list of navis.TreeNeuron
+        Neurons to split by compartment
+
+    Returns
+    -------
+    dict
+        Dictionary with keys 'axon', 'dendrite', 'linker', 'neurite' containing
+        navis.NeuronList objects for each compartment
+
+    Examples
+    --------
+    >>> compartments = split_neurons_by_compartment(neurons)
+    >>> axons = compartments['axon']
+    >>> dendrites = compartments['dendrite']
+    """
+    import navis
+    import pandas as pd
+
+    axons = []
+    dendrites = []
+    linkers = []
+    neurites = []
+
+    for neuron in neurons:
+        # Check if neuron has compartment labels
+        if 'Label' in neuron.nodes.columns or 'label' in neuron.nodes.columns or 'compartment' in neuron.nodes.columns:
+            label_col = 'Label' if 'Label' in neuron.nodes.columns else ('label' if 'label' in neuron.nodes.columns else 'compartment')
+
+            # Split by compartment
+            for compartment in neuron.nodes[label_col].unique():
+                if pd.isna(compartment):
+                    continue
+
+                comp_lower = str(compartment).lower()
+                subset = navis.subset_neuron(neuron, neuron.nodes[neuron.nodes[label_col] == compartment].node_id.values)
+
+                if 'axon' in comp_lower and 'dendrite' not in comp_lower and 'neurite' not in comp_lower:
+                    axons.append(subset)
+                elif 'dendrite' in comp_lower and 'primary' not in comp_lower:
+                    dendrites.append(subset)
+                elif 'primary_dendrite' in comp_lower or 'linker' in comp_lower:
+                    linkers.append(subset)
+                elif 'neurite' in comp_lower or 'tract' in comp_lower:
+                    neurites.append(subset)
+
+    return {
+        'axon': navis.NeuronList(axons) if axons else navis.NeuronList([]),
+        'dendrite': navis.NeuronList(dendrites) if dendrites else navis.NeuronList([]),
+        'linker': navis.NeuronList(linkers) if linkers else navis.NeuronList([]),
+        'neurite': navis.NeuronList(neurites) if neurites else navis.NeuronList([])
+    }
+
+
+def plot3d_split(neurons, volumes=None, backend='plotly', width=1200, height=800, title=None, **kwargs):
+    """
+    Plot neurons colored by axon/dendrite compartments (similar to R's hemibrainr functions).
+
+    This function automatically splits neurons by their compartment labels and colors them:
+    - Orange: axon
+    - Cyan: dendrite
+    - Green: linker (primary dendrite)
+    - Purple: neurite (primary neurite/cell body fiber)
+    - Grey: volumes (if provided)
+
+    Parameters
+    ----------
+    neurons : navis.NeuronList or list of navis.TreeNeuron
+        Neurons to plot (must have Label/label/compartment column in nodes)
+    volumes : navis.Volume or list of navis.Volume, optional
+        Neuropil volumes to include
+    backend : str
+        Plotting backend ('plotly', 'octarine', etc.)
+    width : int
+        Plot width in pixels
+    height : int
+        Plot height in pixels
+    title : str, optional
+        Plot title
+    **kwargs
+        Additional arguments passed to navis.plot3d()
+
+    Returns
+    -------
+    fig
+        Plotly/octarine figure object
+
+    Examples
+    --------
+    >>> fig = plot3d_split(vpn_neurons, volumes=al_volume)
+    >>> fig.show()
+    """
+    import navis
+
+    # Split neurons by compartment
+    compartments = split_neurons_by_compartment(neurons)
+
+    # Prepare plot objects and colors
+    plot_objects = []
+    plot_colors = []
+
+    # Add volumes first (if provided)
+    if volumes is not None:
+        if not isinstance(volumes, list):
+            volumes = [volumes]
+        plot_objects.extend(volumes)
+        # Volumes don't use colors from plot3d - set on Volume object
+
+    # Add compartments in order (dendrite, linker, axon, neurite)
+    if len(compartments['dendrite']) > 0:
+        plot_objects.extend(compartments['dendrite'])
+        plot_colors.extend(['cyan'] * len(compartments['dendrite']))
+
+    if len(compartments['linker']) > 0:
+        plot_objects.extend(compartments['linker'])
+        plot_colors.extend(['green'] * len(compartments['linker']))
+
+    if len(compartments['axon']) > 0:
+        plot_objects.extend(compartments['axon'])
+        plot_colors.extend(['orange'] * len(compartments['axon']))
+
+    if len(compartments['neurite']) > 0:
+        plot_objects.extend(compartments['neurite'])
+        plot_colors.extend(['purple'] * len(compartments['neurite']))
+
+    # Plot
+    if len(plot_objects) > 0:
+        fig = navis.plot3d(
+            plot_objects,
+            color=plot_colors if plot_colors else None,
+            backend=backend,
+            width=width,
+            height=800,
+            title=title if title else 'Neurons - Colored by Compartment',
+            **kwargs
+        )
+        return fig
+    else:
+        print("⚠ No neurons or compartments to plot")
+        return None
+
+
+# ==============================================================================
 # Export commonly used items
 # ==============================================================================
 
@@ -536,6 +687,7 @@ __all__ = [
 
     # Neuron analysis
     'navis', 'read_swc_from_gcs', 'batch_read_swc_from_gcs',
+    'split_neurons_by_compartment', 'plot3d_split',
 
     # 3D meshes
     'trimesh', 'read_obj_from_gcs',
