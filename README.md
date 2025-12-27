@@ -8,17 +8,15 @@ This tutorial provides foundational skills for loading, analysing, and visualisi
 
 ---
 
-# Why learn from this tutorial?
+# This tutorial
 
 This tutorial offers: 
 
-1. specially curated data for multi-connectome analyses.
+1. curated data for connectomic analyses.
 
-2. concise python and R code for simple but effective analyses of connectome data. 
+2. concise Python and R code for simple but effective analyses of connectome data. 
 
 3. guides you through some general principles of exploratory connectomics analysis that should be useful. 
-
-We hope it constitutes an effective guide. Please share and launch GitHub issues to help resolve problems. Please see our citation section for currect conduct.
 
 ---
 
@@ -72,7 +70,7 @@ Complete male CNS connectome with 166,691 neurons spanning brain and ventral ner
 ### FAFB (Full Adult Fly Brain)
 Complete adult female fly brain connectome via the FlyWire project. Contains ~139,000 neurons spanning all brain regions including detailed annotations of 8,453 cell types. A female fly. Missing ventral nerve cord, lamina and retina.
 
-- **Explore:** [Codex](https://codex.flywire.ai/?dataset=fafb) | [Neuroglancer](https://spelunker.cave-explorer.org/#!%7B%22dimensions%22:%7B%22x%22:%5B0.000004096%2C%22m%22%5D%2C%22y%22:%5B0.000004096%2C%22m%22%5D%2C%22z%22:%5B0.00000512%2C%22m%22%5D%7D%2C%22position%22:%5B129.42376708984375%2C50.37461471557617%2C31.5%5D%2C%22crossSectionScale%22:0.0019169223883004237%2C%22projectionOrientation%22:%5B-0.012758452445268631%2C-0.046299245208501816%2C0.0008875647909007967%2C0.9988457560539246%5D%2C%22projectionScale%22:113.08496972495571%2C%22layers%22:%5B%7B%22type%22:%22image%22%2C%22source%22:%22https://bossdb-open-data.s3.amazonaws.com/flywire/fafbv14/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22source%22%2C%22name%22:%22EM%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%7B%22url%22:%22gs://flywire_v141_m783/%7Cneuroglancer-precomputed:%22%2C%22subsources%22:%7B%22default%22:true%2C%22bounds%22:true%2C%22mesh%22:true%7D%2C%22enableDefaultSubsources%22:false%7D%2C%22tab%22:%22segments%22%2C%22segments%22:%5B%5D%2C%22name%22:%22flywire_m783%22%7D%5D%2C%22showSlices%22:false%2C%22selectedLayer%22:%7B%22visible%22:true%2C%22layer%22:%22flywire_m783%22%7D%2C%22layout%22:%22xy-3d%22%7D)
+- **Explore:** [Codex](https://codex.flywire.ai/?dataset=fafb) | [Neuroglancer](https://spelunker.cave-explorer.org/#!%7B%22dimensions%22:%7B%22x%22:%5B4e-9%2C%22m%22%5D%2C%22y%22:%5B4e-9%2C%22m%22%5D%2C%22z%22:%5B4e-8%2C%22m%22%5D%7D%2C%22position%22:%5B132596.984375%2C53845.46875%2C3380.5%5D%2C%22crossSectionScale%22:13.628079869267063%2C%22projectionScale%22:255985.26295878578%2C%22layers%22:%5B%7B%22type%22:%22image%22%2C%22source%22:%22precomputed://https://bossdb-open-data.s3.amazonaws.com/flywire/fafbv14%22%2C%22tab%22:%22rendering%22%2C%22shader%22:%22#uicontrol%20float%20black%20slider%28min=0%2C%20max=1%2C%20default=0.0%29%5Cn#uicontrol%20float%20white%20slider%28min=0%2C%20max=1%2C%20default=1.0%29%5Cnfloat%20rescale%28float%20value%29%20%7B%5Cn%20%20return%20%28value%20-%20black%29%20/%20%28white%20-%20black%29%3B%5Cn%7D%5Cnvoid%20main%28%29%20%7B%5Cn%20%20float%20val%20=%20toNormalized%28getDataValue%28%29%29%3B%5Cn%20%20if%20%28val%20%3C%20black%29%20%7B%5Cn%20%20%20%20emitRGB%28vec3%280%2C0%2C0%29%29%3B%5Cn%20%20%7D%20else%20if%20%28val%20%3E%20white%29%20%7B%5Cn%20%20%20%20emitRGB%28vec3%281.0%2C%201.0%2C%201.0%29%29%3B%5Cn%20%20%7D%20else%20%7B%5Cn%20%20%20%20emitGrayscale%28rescale%28val%29%29%3B%5Cn%20%20%7D%5Cn%7D%5Cn%22%2C%22shaderControls%22:%7B%22white%22:0.82%7D%2C%22name%22:%22EM%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%7B%22url%22:%22precomputed://gs://flywire_v141_m783%22%2C%22subsources%22:%7B%22default%22:true%2C%22bounds%22:true%2C%22mesh%22:true%7D%2C%22enableDefaultSubsources%22:false%7D%2C%22tab%22:%22segments%22%2C%22segments%22:%5B%5D%2C%22name%22:%22flywire_m783%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%5B%22precomputed://gs://flywire_neuropil_meshes/whole_neuropil/brain_mesh_v3%22%2C%22precomputed://middleauth+https://global.daf-apis.com/nglstate/api/v1/property/4691248662183936%22%5D%2C%22tab%22:%22segments%22%2C%22objectAlpha%22:0.5%2C%22meshSilhouetteRendering%22:2%2C%22segments%22:%5B%221%22%5D%2C%22segmentDefaultColor%22:%22#ffffff%22%2C%22name%22:%22Brain%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%5B%22precomputed://gs://flywire_neuropil_meshes/neuropils/neuropil_mesh_v141_v6%22%2C%22precomputed://middleauth+https://global.daf-apis.com/nglstate/api/v1/property/6127113405988864%22%5D%2C%22tab%22:%22segments%22%2C%22selectedAlpha%22:0.83%2C%22objectAlpha%22:0.5%2C%22meshSilhouetteRendering%22:1%2C%22segments%22:%5B%5D%2C%22name%22:%22Neuropils%22%7D%5D%2C%22showSlices%22:false%2C%22selectedLayer%22:%7B%22visible%22:true%2C%22layer%22:%22flywire_m783%22%7D%2C%22layout%22:%22xy-3d%22%7D)
 - **Publication:** [Dorkenwald et al. (2024)](https://www.nature.com/articles/s41586-024-07686-5) Nature; [Schlegel et al. (2024)](https://www.nature.com/articles/s41586-024-07686-5) Nature
 - **Documentation:** [data/dataset_documentation/fafb_data.md](data/dataset_documentation/fafb_data.md)
 
@@ -83,7 +81,7 @@ Complete adult female fly brain connectome via the FlyWire project. Contains ~13
 ### MANC (Male Adult Nerve Cord)
 First complete nerve cord connectome with ~23,000 neurons. A male fly. Missing brain.
 
-- **Explore:** [neuPrint](https://neuprint.janelia.org/?dataset=manc)
+- **Explore:** [neuPrint](https://neuprint.janelia.org/?dataset=manc) | [Codex](https://codex.flywire.ai/?dataset=manc) | [Neuroglancer](https://spelunker.cave-explorer.org/#!%7B%22dimensions%22:%7B%22x%22:%5B8e-9%2C%22m%22%5D%2C%22y%22:%5B8e-9%2C%22m%22%5D%2C%22z%22:%5B8e-9%2C%22m%22%5D%7D%2C%22position%22:%5B23056.5%2C29733.5%2C41138.5%5D%2C%22crossSectionScale%22:1%2C%22projectionScale%22:131072%2C%22layers%22:%5B%7B%22type%22:%22image%22%2C%22source%22:%22gs://flyem-vnc-2-26-213dba213ef26e094c16c860ae7f4be0/v3_emdata_clahe_xy/jpeg/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22source%22%2C%22name%22:%22EM%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22gs://manc-seg-v1p2/manc-seg-v1.2/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22source%22%2C%22segments%22:%5B%5D%2C%22name%22:%22MANC%20v1.2.3%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22gs://flyem-vnc-roi-d5f392696f7a48e27f49fa1a9db5ee3b/roi-202208/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22source%22%2C%22selectedAlpha%22:0%2C%22segments%22:%5B%5D%2C%22name%22:%22neuropils%22%7D%5D%2C%22showAxisLines%22:false%2C%22showDefaultAnnotations%22:false%2C%22showSlices%22:false%2C%22selectedLayer%22:%7B%22visible%22:true%2C%22layer%22:%22MANC%20v1.2.3%22%7D%2C%22layout%22:%22xy-3d%22%2C%22selection%22:%7B%22layers%22:%7B%22seg%22:%7B%22annotationId%22:%22data-bounds%22%2C%22annotationSource%22:0%2C%22annotationSubsource%22:%22bounds%22%7D%7D%7D%7D)
 - **Publication:** [Takemura et al. (2024)](https://elifesciences.org/reviewed-preprints/97769) eLife
 - **Documentation:** [data/dataset_documentation/manc_data.md](data/dataset_documentation/manc_data.md)
 
@@ -94,7 +92,7 @@ First complete nerve cord connectome with ~23,000 neurons. A male fly. Missing b
 ### Hemibrain
 Dense reconstruction of approximately half the central brain (~25,000 neurons). Includes mushroom body learning circuits and central complex navigation circuits. A female fly. Missing ventral nerve cord and approximately half of the brain.
 
-- **Explore:** [neuPrint](https://neuprint.janelia.org/?dataset=hemibrain:v1.2.1)
+- **Explore:** [neuPrint](https://neuprint.janelia.org/?dataset=hemibrain:v1.2.1) | [Neuroglancer](https://spelunker.cave-explorer.org/#!%7B%22dimensions%22:%7B%22x%22:%5B8e-9%2C%22m%22%5D%2C%22y%22:%5B8e-9%2C%22m%22%5D%2C%22z%22:%5B8e-9%2C%22m%22%5D%7D%2C%22position%22:%5B30005.095703125%2C20073.41015625%2C12157.427734375%5D%2C%22crossSectionScale%22:9.214678755682833%2C%22projectionOrientation%22:%5B-0.03779619187116623%2C0.38050830364227295%2C0.13536255061626434%2C0.9140360355377197%5D%2C%22projectionScale%22:441638.40352250263%2C%22layers%22:%5B%7B%22type%22:%22image%22%2C%22source%22:%22gs://neuroglancer-janelia-flyem-hemibrain/emdata/clahe_yz/jpeg/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22source%22%2C%22name%22:%22EM%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22gs://neuroglancer-janelia-flyem-hemibrain/v1.2/segmentation/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22source%22%2C%22segments%22:%5B%5D%2C%22name%22:%22Hemibrain%22%7D%2C%7B%22type%22:%22segmentation%22%2C%22source%22:%22gs://neuroglancer-janelia-flyem-hemibrain/v1.2/rois/%7Cneuroglancer-precomputed:%22%2C%22tab%22:%22segments%22%2C%22selectedAlpha%22:0%2C%22segments%22:%5B%5D%2C%22name%22:%22rois%22%7D%5D%2C%22showAxisLines%22:false%2C%22showDefaultAnnotations%22:false%2C%22showSlices%22:false%2C%22selectedLayer%22:%7B%22visible%22:true%2C%22layer%22:%22Hemibrain%22%7D%2C%22layout%22:%22xy-3d%22%2C%22selection%22:%7B%22layers%22:%7B%22seg%22:%7B%22annotationId%22:%22data-bounds%22%2C%22annotationSource%22:0%2C%22annotationSubsource%22:%22bounds%22%7D%7D%7D%7D)
 - **Publication:** [Scheffer et al. (2020)](https://elifesciences.org/articles/57443) eLife
 - **Documentation:** [data/dataset_documentation/hemibrain_data.md](data/dataset_documentation/hemibrain_data.md)
 
