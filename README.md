@@ -23,11 +23,12 @@ This tutorial offers:
 ## Quick Links
 
 - [Connectome Datasets](#connectome-datasets) - BANC, Male CNS, FAFB, MANC, Hemibrain
+- [Guides](#guides) - Neuroglancer and ultrastructure guides
 - [Analysis Tools](#analysis-tools) - Python and R packages with installation guides
 - [Data Organisation](#data-organisation) - Google Drive structure and file types
 - [Tutorial Path](#tutorial-path) - What you'll learn (2 hours)
 - [Getting Started](#getting-started) - Installation and first steps
-- [Citation](#citation) - How to cite these datasets
+- [Citation](#citation) - How to cite the datasets
 
 ---
 
