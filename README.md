@@ -123,6 +123,7 @@ These guides were created by the FlyWire project:
 - **[ConnectomeInfluenceCalculator](https://zenodo.org/records/17693838)** - Quantify influence between sensory and effector neurons
 - **[cocoa](https://github.com/flyconnectome/cocoa)** - Compare inter/intra-dataset connectivity
 -**[CAVEclient](https://github.com/CAVEconnectome/CAVEclient)** - Live connectome dataset annotation and tracking (for flies: FAFB, BANC, FANC)
+-**[neuprint-python](https://connectome-neuprint.github.io/neuprint-python/docs/index.html)** - Data access to Janelian connectome projects, e.g. HemiBrain, MANC and maleCNS.
   
 <p align="center">
   <img src="inst/images/natverse_promotion.png" alt="natverse - NeuroAnatomy Toolbox for R" width="70%">
