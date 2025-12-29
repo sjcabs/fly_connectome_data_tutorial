@@ -49,16 +49,35 @@ python3 -m pip install --quiet --upgrade \
     ncollpyde
 
 # Install ConnectomeInfluenceCalculator (required for Tutorial 04)
-# Install PETSc/SLEPc dependencies first via conda
-echo "Installing PETSc/SLEPc dependencies..."
-conda install -c conda-forge petsc petsc4py slepc slepc4py -y --quiet 2>&1 | tail -3
+# Two approaches: conda (local) or pip (Colab)
+echo "Installing ConnectomeInfluenceCalculator dependencies..."
+
+# Check if conda is available (local environment)
+if command -v conda >/dev/null 2>&1; then
+    echo "  Using conda for PETSc/SLEPc installation..."
+    conda install -c conda-forge petsc petsc4py slepc slepc4py -y --quiet 2>&1 | tail -3
+else
+    # Colab environment - try pip-based installation
+    echo "  Using pip for PETSc/SLEPc installation (Colab environment)..."
+
+    # Install system dependencies if running as root (Colab)
+    if [ "$EUID" -eq 0 ] || sudo -n true 2>/dev/null; then
+        echo "  Installing system libraries..."
+        apt-get update -qq && apt-get install -y -qq libpetsc-real-dev libslepc-real-dev 2>&1 | tail -3
+    fi
+
+    # Install Python wrappers via pip
+    python3 -m pip install --quiet petsc4py slepc4py || echo "⚠ PETSc/SLEPc pip installation may have issues"
+fi
 
 echo "Installing ConnectomeInfluenceCalculator from GitHub..."
 # Clone to temporary directory
 TEMP_IC_DIR="/tmp/ConnectomeInfluenceCalculator_$$"
 if git clone --quiet https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_IC_DIR" 2>/dev/null; then
     # Fix pyproject.toml license format (known issue)
-    sed -i.bak 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_IC_DIR/pyproject.toml" 2>/dev/null || true
+    if [ -f "$TEMP_IC_DIR/pyproject.toml" ]; then
+        sed -i.bak 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_IC_DIR/pyproject.toml" 2>/dev/null || true
+    fi
 
     # Install from local directory
     python3 -m pip install --quiet "$TEMP_IC_DIR"
@@ -67,13 +86,14 @@ if git clone --quiet https://github.com/DrugowitschLab/ConnectomeInfluenceCalcul
     if python3 -c "from InfluenceCalculator import InfluenceCalculator" 2>/dev/null; then
         echo "✓ ConnectomeInfluenceCalculator installed successfully"
     else
-        echo "⚠ InfluenceCalculator import test failed"
+        echo "⚠ InfluenceCalculator import test failed (may work after kernel restart)"
     fi
 
     # Cleanup
     rm -rf "$TEMP_IC_DIR"
 else
     echo "⚠ Failed to clone InfluenceCalculator repository"
+    echo "  Check internet connection and git availability"
 fi
 
 # Install Jupyter widgets for interactive plots

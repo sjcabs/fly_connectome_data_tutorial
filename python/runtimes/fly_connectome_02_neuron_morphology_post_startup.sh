@@ -46,6 +46,7 @@ python3 -m pip install --quiet --upgrade \
 # Install Jupyter widgets for interactive plots
 python3 -m pip install --quiet --upgrade \
     ipywidgets \
+    jupyter \
     tqdm
 
 # Install CAVE tools for Extension 03 (optional - for downloading meshes from BANC)

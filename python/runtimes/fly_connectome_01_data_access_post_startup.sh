@@ -45,6 +45,7 @@ python3 -m pip install --quiet --upgrade \
 # Install Jupyter widgets for interactive plots
 python3 -m pip install --quiet --upgrade \
     ipywidgets \
+    jupyter \
     tqdm
 
 # Verify key installations
