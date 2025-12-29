@@ -48,15 +48,38 @@ python3 -m pip install --quiet --upgrade \
     pykdtree \
     ncollpyde
 
-# Install ConnectomeInfluenceCalculator from GitHub
-# This is required for Tutorial 04 influence analysis
+# Install ConnectomeInfluenceCalculator (required for Tutorial 04)
+# Install PETSc/SLEPc dependencies first via conda
+echo "Installing PETSc/SLEPc dependencies..."
+conda install -c conda-forge petsc petsc4py slepc slepc4py -y --quiet 2>&1 | tail -3
+
 echo "Installing ConnectomeInfluenceCalculator from GitHub..."
-python3 -m pip install --quiet --upgrade \
-    git+https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git || echo "⚠ Influence calculator installation failed, may require manual setup"
+# Clone to temporary directory
+TEMP_IC_DIR="/tmp/ConnectomeInfluenceCalculator_$$"
+if git clone --quiet https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_IC_DIR" 2>/dev/null; then
+    # Fix pyproject.toml license format (known issue)
+    sed -i.bak 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_IC_DIR/pyproject.toml" 2>/dev/null || true
+
+    # Install from local directory
+    python3 -m pip install --quiet "$TEMP_IC_DIR"
+
+    # Test import
+    if python3 -c "from InfluenceCalculator import InfluenceCalculator" 2>/dev/null; then
+        echo "✓ ConnectomeInfluenceCalculator installed successfully"
+    else
+        echo "⚠ InfluenceCalculator import test failed"
+    fi
+
+    # Cleanup
+    rm -rf "$TEMP_IC_DIR"
+else
+    echo "⚠ Failed to clone InfluenceCalculator repository"
+fi
 
 # Install Jupyter widgets for interactive plots
 python3 -m pip install --quiet --upgrade \
     ipywidgets \
+    jupyter \
     tqdm
 
 # Verify key installations
