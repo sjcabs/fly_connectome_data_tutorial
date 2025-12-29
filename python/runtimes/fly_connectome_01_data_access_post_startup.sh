@@ -22,7 +22,7 @@ python3 -m pip install --quiet --upgrade \
 
 # Install visualization packages
 python3 -m pip install --quiet --upgrade \
-    plotly \
+    plotly==5.24.1 \
     kaleido \
     matplotlib \
     seaborn
