@@ -42,9 +42,11 @@ python3 -m pip install --quiet --upgrade \
 echo "Installing navis and neuroscience tools..."
 python3 -m pip install --quiet --upgrade \
     "navis[all]==1.10.0" \
+    flybrains \
     trimesh \
     pykdtree \
-    ncollpyde
+    ncollpyde \
+    caveclient
 
 # Install network analysis and scientific computing tools
 echo "Installing network analysis and clustering tools..."
