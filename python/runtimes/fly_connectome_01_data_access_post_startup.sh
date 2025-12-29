@@ -13,9 +13,10 @@ echo "========================================="
 python3 -m pip install --quiet --upgrade pip
 
 # Install core data science packages
+# NumPy must be <2.1 for compatibility with numba (used by navis)
 python3 -m pip install --quiet --upgrade \
     pandas==2.3.3 \
-    numpy \
+    "numpy>=2.0,<2.1" \
     pyarrow \
     gcsfs
 
