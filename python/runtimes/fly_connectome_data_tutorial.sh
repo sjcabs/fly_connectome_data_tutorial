@@ -20,16 +20,19 @@ python3 -m pip install --quiet --upgrade pip
 
 # Install core data science packages
 echo "Installing core data science packages..."
+# NumPy must be <2.1 for compatibility with numba (used by navis)
+# Protobuf must be <5.0 for compatibility with pyarrow/gcsfs
 python3 -m pip install --quiet --upgrade \
+    "protobuf>=3.20,<5.0" \
     pandas==2.3.3 \
-    numpy \
+    "numpy>=2.0,<2.1" \
     pyarrow \
     gcsfs
 
 # Install visualization packages
 echo "Installing visualization packages..."
 python3 -m pip install --quiet --upgrade \
-    plotly \
+    plotly==5.24.1 \
     kaleido \
     matplotlib \
     seaborn
