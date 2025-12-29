@@ -12,11 +12,13 @@ echo "========================================="
 # Update pip
 python3 -m pip install --quiet --upgrade pip
 
+# CRITICAL: Install protobuf FIRST to prevent AttributeError issues
+echo "Installing protobuf (compatible version)..."
+python3 -m pip install --quiet --force-reinstall "protobuf>=3.20,<5.0"
+
 # Install core data science packages
 # NumPy must be <2.1 for compatibility with numba (used by navis)
-# Protobuf must be <5.0 for compatibility with pyarrow/gcsfs
 python3 -m pip install --quiet --upgrade \
-    "protobuf>=3.20,<5.0" \
     pandas==2.3.3 \
     "numpy>=2.0,<2.1" \
     pyarrow \
