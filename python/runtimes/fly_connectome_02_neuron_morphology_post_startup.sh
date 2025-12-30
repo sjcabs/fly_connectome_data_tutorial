@@ -41,7 +41,8 @@ python3 -m pip install --quiet --upgrade \
 # Scientific computing
 python3 -m pip install --quiet --upgrade \
     scipy \
-    scikit-learn
+    scikit-learn \
+    umap-learn
 
 # Neuroscience tools
 python3 -m pip install --quiet --upgrade \
@@ -50,14 +51,14 @@ python3 -m pip install --quiet --upgrade \
     pykdtree \
     ncollpyde
 
-# Optional: flybrains for transforms
+# Optional: flybrains
 python3 -m pip install --quiet --upgrade \
-    navis-flybrains || echo "ℹ flybrains installation optional"
+    navis-flybrains || echo "ℹ flybrains optional"
 
-# Optional: CAVE client for mesh downloading (Extension 03)
+# Optional: CAVE client (Extension 03)
 python3 -m pip install --quiet --upgrade \
     caveclient \
-    cloud-volume || echo "ℹ caveclient installation optional"
+    cloud-volume || echo "ℹ caveclient optional"
 
 # Jupyter support
 python3 -m pip install --quiet --upgrade \
@@ -72,10 +73,10 @@ python3 -c "import pandas as pd; print(f'✓ pandas {pd.__version__}')"
 python3 -c "import gcsfs; print('✓ gcsfs installed')"
 python3 -c "import plotly; print('✓ plotly installed')"
 python3 -c "import trimesh; print('✓ trimesh installed')"
+python3 -c "import umap; print('✓ umap installed')"
 
 echo ""
-echo "Optional packages:"
-python3 -c "import caveclient; print(f'✓ caveclient {caveclient.__version__}')" 2>/dev/null || echo "ℹ caveclient not installed (Extension 03 will be skipped)"
+python3 -c "import caveclient; print(f'✓ caveclient {caveclient.__version__}')" 2>/dev/null || echo "ℹ caveclient not installed"
 
 echo ""
 echo "========================================="
