@@ -30,8 +30,8 @@ python3 -m pip uninstall -y pandas seaborn 2>/dev/null || true
 
 # Core packages (install in order: numpy first, then pandas)
 echo "Installing core packages..."
-python3 -m pip install --quiet --no-cache-dir "numpy>=2.0,<2.1"
-python3 -m pip install --quiet --no-cache-dir pandas==2.3.3
+python3 -m pip install --quiet --no-cache-dir "numpy==2.0.2"
+python3 -m pip install --quiet --no-cache-dir "pandas==2.2.3"
 python3 -m pip install --quiet --no-cache-dir pyarrow gcsfs
 
 # Visualization (seaborn after pandas is stable)
