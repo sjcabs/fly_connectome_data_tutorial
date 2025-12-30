@@ -19,20 +19,24 @@ fi
 # Update pip
 python3 -m pip install --quiet --upgrade pip
 
-# Fix protobuf
+# Fix protobuf and clear problematic packages
 echo "Installing protobuf (compatible version)..."
 python3 -m pip uninstall -y protobuf 2>/dev/null || true
 python3 -m pip install --no-cache-dir "protobuf>=3.20,<5.0"
 
-# Core packages
-python3 -m pip install --quiet --upgrade \
-    pandas==2.3.3 \
-    "numpy>=2.0,<2.1" \
-    pyarrow \
-    gcsfs
+# Uninstall potentially conflicting packages first
+echo "Clearing pandas/seaborn to avoid conflicts..."
+python3 -m pip uninstall -y pandas seaborn 2>/dev/null || true
 
-# Visualization
-python3 -m pip install --quiet --upgrade \
+# Core packages (install in order: numpy first, then pandas)
+echo "Installing core packages..."
+python3 -m pip install --quiet --no-cache-dir "numpy>=2.0,<2.1"
+python3 -m pip install --quiet --no-cache-dir pandas==2.3.3
+python3 -m pip install --quiet --no-cache-dir pyarrow gcsfs
+
+# Visualization (seaborn after pandas is stable)
+echo "Installing visualization packages..."
+python3 -m pip install --quiet --no-cache-dir \
     plotly==5.24.1 \
     kaleido \
     matplotlib \
