@@ -53,7 +53,7 @@ python3 -m pip install --quiet --upgrade \
 
 # Optional: flybrains
 python3 -m pip install --quiet --upgrade \
-    navis-flybrains || echo "ℹ flybrains optional"
+    flybrains || echo "ℹ flybrains optional"
 
 # Optional: CAVE client (Extension 03)
 python3 -m pip install --quiet --upgrade \
