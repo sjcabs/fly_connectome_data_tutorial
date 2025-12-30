@@ -82,7 +82,12 @@ TEMP_DIR="/tmp/ic_install_$$"
 git clone --quiet https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_DIR"
 
 if [ -f "$TEMP_DIR/pyproject.toml" ]; then
-    sed -i 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_DIR/pyproject.toml"
+    # macOS requires backup extension, Linux doesn't - make it compatible
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_DIR/pyproject.toml"
+    else
+        sed -i 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_DIR/pyproject.toml"
+    fi
 fi
 
 echo "  Installing ConnectomeInfluenceCalculator..."
