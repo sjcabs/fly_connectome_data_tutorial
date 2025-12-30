@@ -46,6 +46,14 @@ python3 -m pip install --quiet \
     tqdm \
     joblib
 
+# Install neuroscience tools (needed by utils.py)
+echo "Installing neuroscience packages..."
+python3 -m pip install --quiet \
+    navis==1.10.0 \
+    trimesh \
+    pykdtree \
+    ncollpyde
+
 echo "✓ Core packages installed"
 
 # Install InfluenceCalculator
