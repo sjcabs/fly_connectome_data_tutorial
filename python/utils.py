@@ -113,7 +113,7 @@ def setup_gcs(token='google_default'):
     return gcs
 
 
-def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
+def construct_path(data_root, dataset, file_type="meta", space_suffix=None, subset=None):
     """
     Construct file paths for dataset files.
 
@@ -127,6 +127,8 @@ def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
         Type of file: "meta", "edgelist", "edgelist_simple", "synapses", "skeletons"
     space_suffix : str, optional
         Space name for skeletons (defaults to native space)
+    subset : str, optional
+        Subset name (e.g., "mushroom_body", "antennal_lobe"). If None, uses top-level files.
 
     Returns
     -------
@@ -137,6 +139,9 @@ def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
     --------
     >>> path = construct_path("gs://bucket/data", "banc_746", "meta")
     >>> # Returns: gs://bucket/data/banc/banc_746_meta.feather
+
+    >>> path = construct_path("gs://bucket/data", "banc_746", "synapses", subset="mushroom_body")
+    >>> # Returns: gs://bucket/data/banc/mushroom_body/banc_746_mushroom_body_synapses.feather
     """
     dataset_name = dataset.split("_")[0]
 
@@ -144,7 +149,7 @@ def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
         "meta": ".feather",
         "edgelist": ".feather",
         "edgelist_simple": ".feather",
-        "synapses": ".parquet",
+        "synapses": ".parquet" if subset is None else ".feather",  # Subsets use .feather
         "skeletons": ""  # Directory
     }
 
@@ -153,22 +158,43 @@ def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
 
     extension = extensions[file_type]
 
-    if file_type == "skeletons":
-        if space_suffix is None:
-            space_suffix = f"{dataset_name}_space"
+    # Build subdirectory path
+    if subset is not None:
+        subdir = f"{dataset_name}/{subset}"
 
-        # BANC uses l2 skeletons
-        if dataset_name == "banc":
-            filename = f"{dataset_name}_{space_suffix}_l2_swc{extension}"
+        # For subset files, include subset name in filename
+        if file_type == "skeletons":
+            if space_suffix is None:
+                space_suffix = f"{dataset_name}_space"
+
+            if dataset_name == "banc":
+                filename = f"{dataset_name}_{subset}_{space_suffix}_l2_swc{extension}"
+            else:
+                filename = f"{dataset_name}_{subset}_{space_suffix}_swc{extension}"
+        elif file_type == "edgelist_simple":
+            filename = f"{dataset}_{subset}_simple_edgelist{extension}"
         else:
-            filename = f"{dataset_name}_{space_suffix}_swc{extension}"
-    elif file_type == "edgelist_simple":
-        # Note: "simple" comes before "edgelist" in filename
-        filename = f"{dataset}_simple_edgelist{extension}"
+            filename = f"{dataset}_{subset}_{file_type}{extension}"
     else:
-        filename = f"{dataset}_{file_type}{extension}"
+        subdir = dataset_name
 
-    full_path = f"{data_root}/{dataset_name}/{filename}"
+        # Standard top-level file naming
+        if file_type == "skeletons":
+            if space_suffix is None:
+                space_suffix = f"{dataset_name}_space"
+
+            # BANC uses l2 skeletons
+            if dataset_name == "banc":
+                filename = f"{dataset_name}_{space_suffix}_l2_swc{extension}"
+            else:
+                filename = f"{dataset_name}_{space_suffix}_swc{extension}"
+        elif file_type == "edgelist_simple":
+            # Note: "simple" comes before "edgelist" in filename
+            filename = f"{dataset}_simple_edgelist{extension}"
+        else:
+            filename = f"{dataset}_{file_type}{extension}"
+
+    full_path = f"{data_root}/{subdir}/{filename}"
     return full_path
 
 
