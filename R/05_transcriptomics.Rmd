@@ -876,6 +876,366 @@ if (exists("network_meta") && nrow(network_meta) > 0) {
 
 ---
 
+# Glutamate Receptor Expression in Visual System
+
+## Introduction to Glutamate Signalling
+
+Glutamate is the primary excitatory neurotransmitter in the mammalian brain, but in *Drosophila*, glutamate transmission can be either **excitatory or inhibitory** depending on the receptor type:
+
+- **Excitatory**: Ionotropic glutamate receptors (iGluRs) including AMPA-like, kainate-like, and NMDA receptors
+- **Inhibitory**: Glutamate-gated chloride channels (GluCl)
+- **Metabotropic**: mGluR modulates neuronal excitability
+
+This section examines the expression of genes related to glutamate receptor function across visual system cell types.
+
+## Define Glutamate Receptor Gene List
+
+```{r define_glur_genes}
+# Organise glutamate receptor genes by functional category
+
+# Trafficking and placement genes (correlate with GluR expression)
+trafficking_genes <- c("stg", "PICK1", "CASK", "Neto")
+
+# Excitatory ionotropic receptors
+excitatory_muscle <- c("GluRIIC", "GluRIID", "GluRIIE", "GluRIIA", "GluRIIB")  # Muscle-specific
+excitatory_ampar <- c("GluRIA", "GluRIB")  # AMPAR-like
+excitatory_kainate <- c("clumsy", "CG1115", "DKaiR1D", "DKaiR1C")  # Kainate-like (DKaiR1C muscle-specific)
+excitatory_nmda <- c("Nmdar1", "Nmdar2")  # NMDA receptors
+
+# Inhibitory receptors
+inhibitory_gluc1 <- c("GluClalpha")  # Glutamate-gated chloride channel
+
+# Metabotropic receptors
+metabotropic <- c("mGluR")
+
+# Combine all genes
+all_glur_genes <- c(
+  trafficking_genes,
+  excitatory_muscle,
+  excitatory_ampar,
+  excitatory_kainate,
+  excitatory_nmda,
+  inhibitory_gluc1,
+  metabotropic
+)
+
+# Create annotation data frame for gene categories
+gene_categories <- data.frame(
+  gene = c(
+    trafficking_genes,
+    excitatory_muscle,
+    excitatory_ampar,
+    excitatory_kainate,
+    excitatory_nmda,
+    inhibitory_gluc1,
+    metabotropic
+  ),
+  category = c(
+    rep("Trafficking/Placement", length(trafficking_genes)),
+    rep("Excitatory (Muscle)", length(excitatory_muscle)),
+    rep("Excitatory (AMPAR-like)", length(excitatory_ampar)),
+    rep("Excitatory (Kainate-like)", length(excitatory_kainate)),
+    rep("Excitatory (NMDA)", length(excitatory_nmda)),
+    rep("Inhibitory (GluCl)", length(inhibitory_gluc1)),
+    rep("Metabotropic (mGluR)", length(metabotropic))
+  ),
+  functional_class = c(
+    rep("Receptor Trafficking", length(trafficking_genes)),
+    rep("Ionotropic (Excitatory)", length(excitatory_muscle) + length(excitatory_ampar) +
+        length(excitatory_kainate) + length(excitatory_nmda)),
+    rep("Ionotropic (Inhibitory)", length(inhibitory_gluc1)),
+    rep("Metabotropic", length(metabotropic))
+  ),
+  stringsAsFactors = FALSE
+)
+
+cat("\n=== GLUTAMATE RECEPTOR GENES ===\n\n")
+cat("Total genes:", length(all_glur_genes), "\n\n")
+cat("By category:\n")
+print(table(gene_categories$category))
+```
+
+## Extract GluR Expression Data
+
+```{r extract_glur_expression}
+# Find which glutamate receptor genes are present in the expression matrix
+genes_in_matrix <- all_glur_genes[all_glur_genes %in% rownames(expr_matrix)]
+genes_missing <- setdiff(all_glur_genes, genes_in_matrix)
+
+cat("\n=== GENE AVAILABILITY ===\n\n")
+cat("Genes found in expression matrix:", length(genes_in_matrix), "\n")
+cat("  ", paste(genes_in_matrix, collapse = ", "), "\n\n")
+
+if (length(genes_missing) > 0) {
+  cat("Genes NOT found in expression matrix:", length(genes_missing), "\n")
+  cat("  ", paste(genes_missing, collapse = ", "), "\n\n")
+  cat("Note: Missing genes may use different nomenclature or not be expressed in visual system\n")
+}
+
+# Extract expression matrix for available genes
+if (length(genes_in_matrix) > 0) {
+  glur_expr <- expr_matrix[genes_in_matrix, , drop = FALSE]
+
+  # Add gene category information
+  glur_expr_annotated <- glur_expr
+
+  # Calculate summary statistics
+  cat("\n=== EXPRESSION STATISTICS ===\n\n")
+  cat("Genes analyzed:", nrow(glur_expr), "\n")
+  cat("Cell types:", ncol(glur_expr), "\n")
+  cat("Mean expression (log-normalized):", round(mean(as.matrix(glur_expr)), 3), "\n")
+  cat("Max expression:", round(max(as.matrix(glur_expr)), 3), "\n")
+  cat("% zeros:", round(100 * sum(glur_expr == 0) / (nrow(glur_expr) * ncol(glur_expr)), 1), "%\n")
+} else {
+  cat("\n⚠ No glutamate receptor genes found in expression matrix\n")
+}
+```
+
+## Visualise GluR Expression Across Visual Cell Types
+
+### Heatmap of Expression Patterns
+
+```{r glur_heatmap, fig.width=18, fig.height=10}
+if (exists("glur_expr") && nrow(glur_expr) > 0) {
+  library(pheatmap)
+  library(viridis)
+
+  # Prepare data for heatmap
+  heatmap_data <- as.matrix(glur_expr)
+
+  # Create row annotation for gene categories
+  row_annotation <- gene_categories %>%
+    filter(gene %in% rownames(heatmap_data)) %>%
+    select(category) %>%
+    as.data.frame()
+  rownames(row_annotation) <- gene_categories$gene[gene_categories$gene %in% rownames(heatmap_data)]
+
+  # Ensure row order matches
+  row_annotation <- row_annotation[rownames(heatmap_data), , drop = FALSE]
+
+  # Define colours for categories
+  category_colours <- c(
+    "Trafficking/Placement" = "#984EA3",
+    "Excitatory (Muscle)" = "#377EB8",
+    "Excitatory (AMPAR-like)" = "#4DAF4A",
+    "Excitatory (Kainate-like)" = "#FF7F00",
+    "Excitatory (NMDA)" = "#E41A1C",
+    "Inhibitory (GluCl)" = "#A65628",
+    "Metabotropic (mGluR)" = "#F781BF"
+  )
+
+  annotation_colours <- list(
+    category = category_colours[names(category_colours) %in% row_annotation$category]
+  )
+
+  # Create heatmap with viridis color scale
+  p_heatmap <- pheatmap(
+    heatmap_data,
+    color = viridis(100),
+    cluster_rows = TRUE,
+    cluster_cols = TRUE,
+    annotation_row = row_annotation,
+    annotation_colors = annotation_colours,
+    show_colnames = TRUE,
+    show_rownames = TRUE,
+    fontsize = 10,
+    fontsize_row = 9,
+    fontsize_col = 8,
+    angle_col = 45,
+    main = "Glutamate Receptor Gene Expression in Visual System Cell Types",
+    border_color = NA,
+    cellwidth = 15,
+    cellheight = 15
+  )
+
+  # Save high-resolution version
+  png(file.path(img_dir, "glur_expression_heatmap.png"),
+      width = 14, height = 10, units = "in", res = 300)
+  pheatmap(
+    heatmap_data,
+    color = viridis(100),
+    cluster_rows = TRUE,
+    cluster_cols = TRUE,
+    annotation_row = row_annotation,
+    annotation_colors = annotation_colours,
+    show_colnames = TRUE,
+    show_rownames = TRUE,
+    fontsize = 10,
+    fontsize_row = 9,
+    fontsize_col = 8,
+    angle_col = 45,
+    main = "Glutamate Receptor Gene Expression in Visual System Cell Types",
+    border_color = NA,
+    cellwidth = 15,
+    cellheight = 15
+  )
+  dev.off()
+
+  cat("\n✓ Heatmap created and saved\n")
+}
+```
+
+### Top Expressing Cell Types Per Gene
+
+```{r glur_top_expressors}
+if (exists("glur_expr") && nrow(glur_expr) > 0) {
+  # For each gene, find top 5 expressing cell types
+  top_expressors_list <- lapply(rownames(glur_expr), function(gene) {
+    expr_values <- glur_expr[gene, ]
+    top_cells <- sort(expr_values, decreasing = TRUE)[1:min(5, length(expr_values))]
+
+    data.frame(
+      gene = gene,
+      cell_type = names(top_cells),
+      expression = as.numeric(top_cells),
+      rank = 1:length(top_cells),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  top_expressors <- do.call(rbind, top_expressors_list)
+
+  # Add gene category
+  top_expressors <- top_expressors %>%
+    left_join(gene_categories, by = "gene")
+
+  # Display summary
+  cat("\n=== TOP EXPRESSING CELL TYPES ===\n\n")
+
+  # Show top expressors for each functional class
+  for (func_class in unique(gene_categories$functional_class)) {
+    cat("\n", func_class, ":\n", sep = "")
+    cat(strrep("-", nchar(func_class) + 2), "\n", sep = "")
+
+    class_genes <- gene_categories$gene[gene_categories$functional_class == func_class]
+    class_genes <- class_genes[class_genes %in% rownames(glur_expr)]
+
+    for (gene in class_genes) {
+      gene_expr <- top_expressors %>%
+        filter(gene == !!gene, rank <= 3) %>%
+        arrange(rank)
+
+      if (nrow(gene_expr) > 0) {
+        cat("  ", gene, ": ", sep = "")
+        cat(paste(gene_expr$cell_type, collapse = ", "), "\n")
+      }
+    }
+  }
+}
+```
+
+### Bar Plot: Mean Expression by Gene Category
+
+```{r glur_category_barplot, fig.width=10, fig.height=6}
+if (exists("glur_expr") && nrow(glur_expr) > 0) {
+  # Calculate mean expression per gene
+  gene_mean_expr <- data.frame(
+    gene = rownames(glur_expr),
+    mean_expression = rowMeans(glur_expr),
+    max_expression = apply(glur_expr, 1, max),
+    n_expressing = apply(glur_expr > 0, 1, sum),
+    stringsAsFactors = FALSE
+  )
+
+  # Add category information
+  gene_mean_expr <- gene_mean_expr %>%
+    left_join(gene_categories, by = "gene")
+
+  # Create bar plot
+  p_category <- ggplot(gene_mean_expr,
+                       aes(x = reorder(gene, mean_expression),
+                           y = mean_expression,
+                           fill = category)) +
+    geom_col() +
+    scale_fill_manual(
+      values = category_colours,
+      name = "Gene Category"
+    ) +
+    coord_flip() +
+    labs(
+      title = "Mean Glutamate Receptor Gene Expression Across Visual Cell Types",
+      subtitle = paste("Expression data from", ncol(glur_expr), "visual system cell types"),
+      x = "Gene",
+      y = "Mean Expression (log-normalized)"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(face = "bold", size = 14),
+      plot.subtitle = element_text(size = 11),
+      axis.text = element_text(size = 10),
+      legend.position = "right"
+    )
+
+  save_plot(p_category, "glur_mean_expression_by_gene", width = 10, height = 8)
+  print(p_category)
+}
+```
+
+## Key Observations: Glutamate Receptors
+
+```{r glur_observations}
+if (exists("glur_expr") && nrow(glur_expr) > 0) {
+  cat("\n=== KEY OBSERVATIONS ===\n\n")
+
+  # Find genes with highest overall expression
+  gene_mean_expr_sorted <- gene_mean_expr %>%
+    arrange(desc(mean_expression))
+
+  cat("Top 5 most highly expressed genes (mean across cell types):\n")
+  for (i in 1:min(5, nrow(gene_mean_expr_sorted))) {
+    gene_info <- gene_mean_expr_sorted[i, ]
+    cat(sprintf("  %d. %s (%s): %.3f\n",
+                i,
+                gene_info$gene,
+                gene_info$category,
+                gene_info$mean_expression))
+  }
+
+  # Find most broadly expressed genes
+  gene_breadth <- gene_mean_expr %>%
+    arrange(desc(n_expressing))
+
+  cat("\nMost broadly expressed genes (detected in most cell types):\n")
+  for (i in 1:min(5, nrow(gene_breadth))) {
+    gene_info <- gene_breadth[i, ]
+    cat(sprintf("  %d. %s: %d/%d cell types (%.1f%%)\n",
+                i,
+                gene_info$gene,
+                gene_info$n_expressing,
+                ncol(glur_expr),
+                100 * gene_info$n_expressing / ncol(glur_expr)))
+  }
+
+  # Category-level summary
+  cat("\nExpression by functional class:\n")
+  category_summary <- gene_mean_expr %>%
+    group_by(functional_class) %>%
+    summarise(
+      n_genes = n(),
+      mean_expr = mean(mean_expression),
+      mean_breadth = mean(n_expressing / ncol(glur_expr) * 100),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(mean_expr))
+
+  for (i in 1:nrow(category_summary)) {
+    cat(sprintf("  %s: %.3f mean expression, %.1f%% breadth (%d genes)\n",
+                category_summary$functional_class[i],
+                category_summary$mean_expr[i],
+                category_summary$mean_breadth[i],
+                category_summary$n_genes[i]))
+  }
+
+  cat("\nBiological Interpretation:\n")
+  cat("  • Glutamate receptors show cell-type-specific expression patterns\n")
+  cat("  • Both excitatory (iGluRs) and inhibitory (GluCl) receptors present\n")
+  cat("  • Receptor trafficking genes indicate active glutamate signalling\n")
+  cat("  • Expression diversity suggests complex glutamatergic circuits in visual system\n")
+}
+```
+
+---
+
 # Summary
 
 In this tutorial, we:
@@ -886,6 +1246,8 @@ In this tutorial, we:
 4. ✓ Loaded FAFB edgelist and filtered for strong connections
 5. ✓ Created a network graph of Ca-α1T+ neurons and their strongest synaptic partners
 6. ✓ Visualised the network structure and cell type composition
+7. ✓ Analyzed glutamate receptor gene expression across visual cell types
+8. ✓ Examined excitatory, inhibitory, and metabotropic glutamate signalling components
 
 ## Key Findings
 
@@ -916,7 +1278,10 @@ if (exists("network_meta") && exists("edgelist_strong")) {
 Possible extensions of this analysis:
 - Compare Ca-α1T+ networks across different datasets (BANC, maleCNS)
 - Analyse other ion channel genes (e.g., Ca-α1D, other VGCCs)
-- Investigate functional implications using neurotransmitter predictions
+- **Integrate glutamate receptor expression with neurotransmitter predictions** to identify glutamatergic circuits
+- **Map glutamate receptor+ neurons to connectome** and analyze their synaptic partners
+- Compare excitatory (iGluR) vs inhibitory (GluCl) receptor expression patterns
+- Investigate co-expression of receptor trafficking genes (stg, PICK1, CASK, Neto) with glutamate receptors
 - Examine morphological properties of Ca-α1T+ neurons
 - Compare expression patterns across developmental stages
 
