@@ -176,6 +176,7 @@ gsutil -m cp -r gs://sjcabs_2025_data/folder_name .
 ### Example Structure (BANC)
 ```
 banc/
+├── banc_data.md                       # Describes each data object at this location, inc. column meanings
 ├── banc_746_meta.feather              # Neuron annotations
 ├── banc_746_edgelist_simple.feather   # Neuron-to-neuron connectivity
 ├── banc_746_synapses.feather          # Individual synapse data
