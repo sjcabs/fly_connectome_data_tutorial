@@ -38,7 +38,9 @@ This tutorial offers:
 
 ## Connectome Datasets
 
-We focus primarily on two FlyWire datasets—**BANC** and **FAFB**—while also providing access to MANC, Hemibrain, and Male CNS. All datasets have been harmonized to use the unified metadata schema we used in the **BANC** project, enabling cross-dataset comparisons. Possible metadata entries given here: [data/meta_data_entries](data/meta_data_entries.csv). You can see renderings of neuronal meshes from the BANC, FAFB, MANC and HemiBrain datasets in neuroglancer [here](https://ngl.banc.community/view).
+We focus primarily on two FlyWire datasets—**BANC** and **FAFB**—while also providing access to MANC, Hemibrain, and Male CNS. All datasets have been harmonized to use the unified metadata schema we used in the **BANC** project, enabling cross-dataset comparisons. Possible metadata entries given here: [data/meta_data_entries](data/meta_data_entries.csv). 
+
+**Importantly**, You can see renderings of neuronal meshes from the BANC, FAFB, MANC and HemiBrain datasets in neuroglancer [here](https://ngl.banc.community/view).
 
 <p align="center">
   <img src="inst/images/banc.png" alt="BANC connectome" width="40%">
