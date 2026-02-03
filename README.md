@@ -161,6 +161,35 @@ Analysis tools:
 
 All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/sjcabs_2025_data)**
 
+To download and work with this data locally, you will need `gsutil`, in terminal you can install and configure with:
+
+```bash
+# 1) Install Google Cloud CLI (includes gsutil) – macOS / Linux
+#    For Windows, use the official Google Cloud CLI installer instead.
+curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64.tar.gz
+tar -xf google-cloud-cli-*.tar.gz
+./google-cloud-sdk/install.sh
+
+# 2) Restart your terminal, then verify install
+gcloud --version       # should print a version
+gsutil version         # should also print a version
+
+# 3) Log in with your Google account and set up config
+gcloud init            # follows browser flow; pick or create a project
+
+# (Optional but often helpful: refresh auth explicitly)
+gcloud auth login
+gcloud auth application-default login
+
+# 4) Test access to the bucket
+gsutil ls gs://sjcabs_2025_data/
+
+# Outcomes:
+#  - If you see object names: access OK.
+#  - If you get 403 AccessDenied: you need permissions on the bucket/project.
+#  - If you get NotFound: bucket name or visibility is wrong.
+```
+
 You can browse and download files directly from the browser, or use command-line tools:
 ```bash
 # List available datasets
