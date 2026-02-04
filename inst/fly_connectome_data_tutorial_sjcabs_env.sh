@@ -54,8 +54,17 @@ echo "✓ Environment activated: ${ENV_NAME}"
 echo ""
 
 # Install core scientific Python packages
+# Note: Colab runtime uses specific versions for compatibility:
+#   - NumPy <2.1 (for numba/navis compatibility)
+#   - pandas==2.3.3
+#   - protobuf <5.0 (for pyarrow/gcsfs compatibility)
 echo "Installing core packages (numpy, pandas, scipy)..."
-conda install -c conda-forge numpy pandas scipy -y
+conda install -c conda-forge "numpy>=2.0,<2.1" pandas scipy -y
+
+# Install protobuf with version constraint
+echo ""
+echo "Installing protobuf..."
+pip install "protobuf>=3.20,<5.0"
 
 # Install data handling packages
 echo ""
@@ -65,7 +74,8 @@ pip install pyarrow gcsfs
 # Install visualization packages
 echo ""
 echo "Installing visualization packages..."
-pip install plotly kaleido matplotlib seaborn
+# Use specific plotly version to match Colab runtime
+pip install plotly==5.24.1 kaleido matplotlib seaborn
 
 # Install Jupyter (optional but useful)
 echo ""
@@ -75,12 +85,23 @@ conda install -c conda-forge jupyter jupyterlab -y
 # Install neuroscience packages
 echo ""
 echo "Installing navis and related packages..."
-pip install navis[all]
+# Use specific navis version to match Colab runtime
+pip install "navis[all]==1.10.0"
 
 # Install flybrains for template transformations
 echo ""
 echo "Installing flybrains..."
 pip install flybrains
+
+# Install caveclient for CAVE datastore access (needed for Tutorial 02)
+echo ""
+echo "Installing caveclient..."
+pip install caveclient
+
+# Install cloud-volume for Neuroglancer mesh reading (needed for Tutorial 02)
+echo ""
+echo "Installing cloud-volume..."
+pip install cloud-volume
 
 # Download flybrains transforms (optional - can be done later)
 echo ""
@@ -93,6 +114,11 @@ else
     echo "Skipping flybrains download (you can do this later)"
 fi
 
+# Install network analysis and machine learning
+echo ""
+echo "Installing networkx and scikit-learn..."
+pip install networkx scikit-learn
+
 # Install UMAP
 echo ""
 echo "Installing UMAP..."
@@ -103,10 +129,15 @@ echo ""
 echo "Installing joblib and tqdm..."
 pip install joblib tqdm
 
-# Install 3D mesh processing
+# Install 3D mesh processing and spatial indexing
 echo ""
-echo "Installing trimesh..."
-pip install trimesh
+echo "Installing trimesh, pykdtree, and ncollpyde..."
+pip install trimesh pykdtree ncollpyde
+
+# Install Jupyter widgets for interactive plots
+echo ""
+echo "Installing ipywidgets..."
+pip install ipywidgets
 
 # Install ConnectomeInfluenceCalculator
 echo ""
@@ -127,8 +158,8 @@ echo "To deactivate:"
 echo "  conda deactivate"
 echo ""
 echo "Installed packages:"
-conda list | grep -E "numpy|pandas|scipy|pyarrow|gcsfs|plotly|navis|flybrains|umap|joblib|tqdm|trimesh"
+conda list | grep -E "numpy|pandas|scipy|pyarrow|gcsfs|plotly|navis|flybrains|umap|joblib|tqdm|trimesh|networkx|scikit-learn|caveclient|cloud-volume"
 echo ""
 echo "To test the installation, run:"
-echo "  python -c 'import navis; import pandas; import plotly; print(\"✓ All imports successful\")'"
+echo "  python -c 'import navis; import pandas; import plotly; import caveclient; from cloudvolume import CloudVolume; print(\"✓ All imports successful\")'"
 echo ""
