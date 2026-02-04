@@ -371,9 +371,6 @@ This tutorial follows a progressive learning path designed to take about 2 hours
 
 ## Getting Started
 
-If running in the cloud:
-   **INSERT**
-   
 If running locally:
 
 1. **Download data** from the [Google Cloud Storage bucket](https://console.cloud.google.com/storage/browser/sjcabs_2025_data) for the dataset(s) you want to work with
@@ -388,6 +385,8 @@ If running locally:
      library(fafbseg)
      simple_python()
      ```
+**Note:** For each python tutorial, there is a paired startup `.sh` file to install its dependencies in `python/runtimes` 
+     
 3. **Open the first tutorial** in `tutorials/python/` or `tutorials/R/`
 
 ---
