@@ -515,6 +515,143 @@ save_plot(p_degree, paste0(dataset, "_degree_distribution"))
 ggplotly(p_degree)
 ```
 
+## Defining local neurons
+
+If we are interested in defining local neurons of the SEZ, we can use `dplyr` to perform some data frame sorting, to work it out. Let's assign "local" neurons
+as neurons with 95% of their input AND output synapses inside a SEZ neuropil.
+
+```{r sez_local}
+# Read synapses feather file for SEZ subset
+dataset_base <- sub("_[0-9]+$", "", dataset)
+synapses_path <- file.path(data_path, dataset_base, subset_name,
+                           paste0(dataset, "_", subset_name, "_synapses.feather"))
+cat("Reading synapses from:", synapses_path, "\n")
+synapses <- read_feather_smart(synapses_path, gcs_filesystem = gcs_fs)
+
+cat("Total synapses:", nrow(synapses), "\n")
+
+# Define SEZ neuropils (matching the meshes we visualised earlier)
+sez_neuropils <- c("GNG", "FLA_L", "FLA_R", "SAD", "PRW", "AMMC_L", "AMMC_R", "AMMC", "FLA")
+cat("SEZ neuropils:", paste(sez_neuropils, collapse = ", "), "\n")
+
+# Mark synapses as in SEZ or not
+synapses <- synapses %>%
+  mutate(in_sez = neuropil %in% sez_neuropils)
+
+# Work out % of synapses for each neuron in the SEZ
+# Only look at IDs in the SEZ meta file
+sez_neuron_ids <- unique(c(edgelist$pre, edgelist$post))
+sez_neuron_complete_ids <- meta[[dataset_id1]]
+cat("Neurons in SEZ:", length(sez_neuron_ids), "\n")
+
+# Filter synapses to only those involving SEZ neurons
+synapses_sez <- synapses %>%
+  filter(pre %in% sez_neuron_ids | post %in% sez_neuron_ids)
+
+cat("Synapses involving SEZ neurons:", nrow(synapses_sez), "\n")
+
+# Calculate presynaptic (output) synapse percentages
+pre_summary <- synapses_sez %>%
+  filter(pre %in% sez_neuron_complete_ids) %>%
+  group_by(pre) %>%
+  summarise(
+    n_pre_total = n(),
+    n_pre_in_sez = sum(in_sez),
+    pct_pre_in_sez = 100 * n_pre_in_sez / n_pre_total,
+    .groups = "drop"
+  ) %>%
+  rename(neuron_id = pre)
+
+# Calculate postsynaptic (input) synapse percentages
+post_summary <- synapses_sez %>%
+  filter(post %in% sez_neuron_complete_ids) %>%
+  group_by(post) %>%
+  summarise(
+    n_post_total = n(),
+    n_post_in_sez = sum(in_sez),
+    pct_post_in_sez = 100 * n_post_in_sez / n_post_total,
+    .groups = "drop"
+  ) %>%
+  rename(neuron_id = post)
+
+# Combine pre and post summaries
+neuron_sez_pct <- full_join(pre_summary, post_summary, by = "neuron_id") %>%
+  replace_na(list(
+    n_pre_total = 0, n_pre_in_sez = 0, pct_pre_in_sez = 0,
+    n_post_total = 0, n_post_in_sez = 0, pct_post_in_sez = 0
+  ))
+
+# Add cell type information first (needed for classification)
+neuron_sez_pct <- neuron_sez_pct %>%
+  left_join(
+    meta %>% select(neuron_id = !!sym(dataset_id), cell_type, cell_class, super_class, flow),
+    by = "neuron_id"
+  )
+
+# Enumerate SEZ neuron classes
+# Sensor: sensory neurons (cell_class contains "sensory")
+# Effector: efferent/motor neurons (flow == "efferent")
+# Local: ≥95% of both pre AND post synapses in SEZ
+# Input: brings information into SEZ (outputs mostly in SEZ, inputs mostly outside)
+# Output: sends information out of SEZ (inputs mostly in SEZ, outputs mostly outside)
+# Through: passing through or mixed patterns
+
+neuron_sez_pct <- neuron_sez_pct %>%
+  mutate(
+    sez_class = case_when(
+      # Check for sensory neurons first
+      grepl("sensory", cell_class, ignore.case = TRUE) ~ "sensor",
+      # Check for effector neurons
+      flow == "efferent" ~ "effector",
+      # Then apply synapse-based classification
+      pct_pre_in_sez >= 95 & pct_post_in_sez >= 95 ~ "local",
+      pct_post_in_sez >= 95 & pct_pre_in_sez < 50 ~ "input",
+      pct_pre_in_sez >= 95 & pct_post_in_sez < 50 ~ "output",
+      TRUE ~ "through"
+    )
+  )
+
+# Print summary
+cat("\n=== SEZ Neuron Classification ===\n")
+sez_class_summary <- neuron_sez_pct %>%
+  count(sez_class) %>%
+  arrange(desc(n))
+print(sez_class_summary)
+
+# Visualise the classification
+p_sez_class <- ggplot(neuron_sez_pct, aes(x = pct_pre_in_sez, y = pct_post_in_sez,
+                                           color = sez_class)) +
+  geom_point(alpha = 0.5, size = 1.5) +
+  geom_vline(xintercept = 95, linetype = "dashed", color = "grey50") +
+  geom_hline(yintercept = 95, linetype = "dashed", color = "grey50") +
+  scale_color_manual(
+    values = c(
+      "sensor" = "orange",
+      "effector" = "purple",
+      "local" = "red",
+      "input" = "blue",
+      "output" = "green",
+      "through" = "grey50"
+    ),
+    name = "SEZ Class"
+  ) +
+  labs(
+    title = "SEZ Neuron Classification",
+    subtitle = "Based on % of synapses within SEZ neuropils (GNG, FLA, SAD, PRW, AMMC)",
+    x = "% Presynaptic (output) synapses in SEZ",
+    y = "% Postsynaptic (input) synapses in SEZ"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    legend.position = "right"
+  )
+save_plot(p_sez_class, paste0(dataset, "_sez_classification"))
+ggplotly(p_sez_class)
+
+```
+
+
 ## Visualizing Direct Connectivity
 
 We can use a network graph plot to look at connectivity when we only have a few nodes.
@@ -949,11 +1086,16 @@ We can use these similarity scores to build a [UMAP](https://umap-learn.readthed
 # Represent as UMAP
 set.seed(42)
 
+# IMPORTANT: Pass raw connectivity matrix to UMAP, NOT cosine similarity matrix
+# Let UMAP compute cosine similarity internally with metric = "cosine"
+# This avoids computing second-order similarity (cosine of cosine)
+inout_connection_dense <- as.matrix(inout_connection_matrix)
+
 umap_result <- uwot::umap(
-  undirected_cosine_sim_matrix,
-  metric = "cosine",
+  inout_connection_dense,  # Pass raw connectivity, not similarity matrix
+  metric = "cosine",       # UMAP will compute cosine similarity internally
   n_epochs = 500,
-  n_neighbors = min(30, nrow(undirected_cosine_sim_matrix) - 1),
+  n_neighbors = min(30, nrow(inout_connection_dense) - 1),
   min_dist = 0.1,
   n_trees = 50,
   n_components = 2,
@@ -964,7 +1106,7 @@ umap_result <- uwot::umap(
 umap_df <- data.frame(
   UMAP1 = umap_result[, 1],
   UMAP2 = umap_result[, 2],
-  id = rownames(undirected_cosine_sim_matrix)
+  id = rownames(inout_connection_dense)
 ) %>%
   left_join(
     meta %>% select(
