@@ -338,7 +338,7 @@ dummy3<-plot3d(neurons, col = "navy", lwd = 2, soma = 10000)
 plot3d(neurons_male_banc, col = "red", lwd = 2, soma = 10000)
 ```
 
-However, if you want do do spatial transforms yourself, you will need to use `nat.templatebrains` and its `xform_brain` function. See Extenstion 1 in this document for details.
+However, if you want to do spatial transforms yourself, you will need to use `nat.templatebrains` and its `xform_brain` function (or Python `navis` via `reticulate` for some datasets). See Extensions 1a and 1b below for details.
 
 ## NBLAST
 
@@ -547,64 +547,124 @@ Now try this analysis yourself with a different dataset!
 
 In the extended code blocks, you can learn how to 1. transform data yourself between template spaces, and 2. visualise data split by axon and dendrite.
 
-## Extension 1:
+## Extension 1: Template Brain Transforms
 
-However, if you want do do spatial transforms yourself, you will need to use `nat.templatebrains` and its `xform_brain` function. A bit confusingly, we will also need [bancr](https://github.com/flyconnectome/bancr?tab=readme-ov-file) to complete the bridge to BANC space.
+If you want to do spatial transforms yourself rather than using pre-transformed skeletons, you will need transform tools. In R, `nat.templatebrains::xform_brain` handles transforms between light-level templates, and [bancr](https://github.com/flyconnectome/bancr) completes the bridge to BANC space. For EM-level templates without R-native registrations (e.g. JRCFIB2022M), we use Python's `navis` via `reticulate`.
 
-For example, let's read the native MANC neurons
+### Extension 1a: MANC → BANC (R-native transforms)
+
+MANC neurons can be transformed to BANC space entirely within R, via the JRCVNC2018F template:
 
 ```{r xform_manc_to_banc, eval=FALSE, fig.width=10, fig.height=8}
 # Download template brain registrations (only needs to be done once)
-nat.flybrains::download_jefferislab_registrations() # one time only
-nat.jrcbrains::download_saalfeldlab_registrations() # one time only
+nat.flybrains::download_jefferislab_registrations()
+nat.jrcbrains::download_saalfeldlab_registrations()
 nat.jrcbrains::register_saalfeldlab_registrations()
 
-# Switch to MANC dataset
+# Read MANC DNg12 neurons in native space
 dataset_manc <- "manc_121"
-dataset_manc_id <- "manc_121_id"
-
-# Read MANC meta data
-meta_manc_path <- construct_path(data_path, dataset_manc, "meta")
-meta_manc_full <- read_feather_smart(meta_manc_path, gcs_filesystem = gcs_fs)
-
-# Filter for DNg12 neurons in MANC
-meta_manc_dng12 <- meta_manc_full %>%
+meta_manc <- read_feather_smart(
+  construct_path(data_path, dataset_manc, "meta"),
+  gcs_filesystem = gcs_fs
+) %>%
   filter(grepl("DNg12", cell_type, ignore.case = TRUE))
-cat("Found", nrow(meta_manc_dng12), "DNg12 neurons in MANC\n")
+cat("Found", nrow(meta_manc), "DNg12 neurons in MANC\n")
 
-# Construct path to MANC skeletons in native MANC space
-skeletons_manc_path <- construct_path(data_path, dataset_manc, "skeletons",
-                                      space_suffix = paste0(dataset_manc, "_manc_space"))
-
-# Read MANC neurons in native space
-manc_ids <- meta_manc_dng12[[dataset_manc_id]]
 manc_dng12 <- read_neurons_dir(
-  dir_path = skeletons_manc_path,
-  neuron_ids = manc_ids,
+  dir_path = construct_path(data_path, dataset_manc, "skeletons"),
+  neuron_ids = meta_manc$manc_121_id,
   gcs_filesystem = gcs_fs
 )
 
-# Transform MANC neurons to JRCVNC2018F template brain
-manc_dng12_jrcvnc2018f <- xform_brain(manc_dng12,
-                                      sample = "MANC",
-                                      reference = "JRCVNC2018F")
+# Two-step transform: MANC → JRCVNC2018F → BANC
+manc_dng12_jrcvnc <- xform_brain(manc_dng12,
+                                  sample = "MANC",
+                                  reference = "JRCVNC2018F")
+manc_dng12_banc <- bancr::banc_to_JRC2018F(manc_dng12_jrcvnc,
+                                            region = "vnc",
+                                            method = "tpsreg",
+                                            banc.units = "nm",
+                                            inverse = TRUE)
 
-# Transform from JRCVNC2018F to BANC using bancr
-manc_dng12_banc <- bancr::banc_to_JRC2018F(manc_dng12_jrcvnc2018f,
-                                           region = "vnc",
-                                           method = "tpsreg",
-                                           banc.units = "nm",
-                                           inverse = TRUE)
-
-# Co-plot MANC neurons with BANC neurons from earlier
+# Co-plot: BANC DNg12 (navy) + MANC DNg12 (green)
 nclear3d()
+dummy1 <- plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
+dummy2 <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1, add = TRUE)
+dummy3 <- plot3d(neurons, col = "navy", lwd = 2, soma = 10000)
+plot3d(manc_dng12_banc, col = "green", lwd = 2, soma = 10000)
+```
 
-# Plot  DNg12 neurons
-dummy1<-plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
-dummy2<-plot3d(brain_mesh, col = "lightgrey", alpha = 0.1, add = TRUE)
-dummy3<-plot3d(neurons, col = "navy", lwd = 2, soma = 10000)
-dumm4<-plot3d(neurons_male_banc, col = "red", lwd = 2, soma = 10000)
-dumm4<-plot3d(manc_dng12_banc, col = "green", lwd = 2, soma = 10000)
+### Extension 1b: maleCNS → BANC (Python navis via reticulate)
+
+The maleCNS dataset uses the JRCFIB2022M coordinate space, for which no R-native registration to BANC exists. We use Python's `navis` and `flybrains` via `reticulate` instead.
+
+**Important:** The native maleCNS SWC files store coordinates in **8 nm voxel units** — you must multiply by 8 to get nanometres before transforming.
+
+```{r xform_malecns_to_banc, eval=FALSE, fig.width=10, fig.height=8}
+library(reticulate)
+
+# Load Python transform backend
+navis     <- import("navis", convert = FALSE)
+flybrains <- import("flybrains")
+np        <- import("numpy", convert = FALSE)
+
+# Read maleCNS DNg12 neurons in native space
+dataset_male <- "malecns_09"
+meta_male <- read_feather_smart(
+  construct_path(data_path, dataset_male, "meta"),
+  gcs_filesystem = gcs_fs
+) %>%
+  filter(grepl("DNg12", cell_type, ignore.case = TRUE))
+cat("Found", nrow(meta_male), "DNg12 neurons in maleCNS\n")
+
+malecns_dng12_native <- read_neurons_dir(
+  dir_path = construct_path(data_path, dataset_male, "skeletons"),
+  neuron_ids = meta_male$malecns_09_id,
+  gcs_filesystem = gcs_fs
+)
+
+# CRITICAL: convert from 8 nm voxel coordinates to nanometres
+cat("Before ×8: X range =", range(xyzmatrix(malecns_dng12_native)[, 1]), "voxels\n")
+for (i in seq_along(malecns_dng12_native)) {
+  xyzmatrix(malecns_dng12_native[[i]]) <- xyzmatrix(malecns_dng12_native[[i]]) * 8
+}
+cat("After  ×8: X range =", range(xyzmatrix(malecns_dng12_native)[, 1]), "nm\n")
+
+# Transform JRCFIB2022M (nm) → BANC (nm) via Python navis TPS
+malecns_dng12_banc <- malecns_dng12_native
+for (i in seq_along(malecns_dng12_banc)) {
+  coords_nm <- xyzmatrix(malecns_dng12_banc[[i]])
+  coords_py <- np$array(r_to_py(coords_nm))
+  coords_banc_py <- navis$xform_brain(coords_py,
+                                       source = "JRCFIB2022M",
+                                       target = "BANC")
+  xyzmatrix(malecns_dng12_banc[[i]]) <- py_to_r(coords_banc_py)
+}
+
+# Validate against pre-transformed skeletons
+malecns_dng12_pre <- read_neurons_dir(
+  dir_path = construct_path(data_path, dataset_male, "skeletons",
+                            space_suffix = "banc_space"),
+  neuron_ids = meta_male$malecns_09_id,
+  gcs_filesystem = gcs_fs
+)
+
+for (i in seq_along(malecns_dng12_banc)) {
+  pts_live <- xyzmatrix(malecns_dng12_banc[[i]])
+  pts_pre  <- xyzmatrix(malecns_dng12_pre[[i]])
+  dists <- nabor::knn(pts_pre, pts_live, k = 1)$nn.dists
+  cat(sprintf("  %s: median dist = %.0f nm, %.0f%% within 10 µm\n",
+              names(malecns_dng12_banc)[i],
+              median(dists),
+              100 * mean(dists < 10000)))
+}
+
+# Co-plot: BANC female DNg12 (navy) + maleCNS male DNg12 (orange)
+nclear3d()
+dummy1 <- plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
+dummy2 <- plot3d(brain_mesh, col = "lightgrey", alpha = 0.1, add = TRUE)
+dummy3 <- plot3d(neurons, col = "navy", lwd = 2, soma = 10000)
+plot3d(malecns_dng12_banc, col = "orange", lwd = 2, soma = 10000)
 ```
 
 You can also `xform_brain` any other data with 3D points, e.g. meshes (`mesh3d` objects), and data frames or matrices (with `x`,`y` and `z` columns), e.g. synapse data.
