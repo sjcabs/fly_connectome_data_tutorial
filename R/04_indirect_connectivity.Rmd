@@ -1183,3 +1183,42 @@ In this tutorial, you learned how to:
 ```{r session_info}
 sessionInfo()
 ```
+
+
+
+# lhns::lhn_odour_responses
+
+
+```{lhns}
+shahar.names1 <- rownames(lhn_odour_responses)
+shahar.names2 <- gsub("nm20","",shahar.names1)
+keep <- shahar.names2 %in% names(most.lhns)
+lhn_odour_responses2 <- lhn_odour_responses[keep,]
+shahar.names3 <- gsub("nm20","",rownames(lhn_odour_responses2))
+lhn_odour_responses2 <- as.data.frame(lhn_odour_responses2)
+lhn_odour_responses2$hemibrain_match <- unlist(most.lhns[shahar.names3,"hemibrain.match"])
+hb.find <- neuprintr::neuprint_search("Traced",field="status",dataset="hemibrain:v1.2.1")
+lhn_odour_responses2$hemibrain_cell_type <- unlist(hb.find$type[match(lhn_odour_responses2$hemibrain_match,as.character(hb.find$bodyid))])
+fw.meta <- fafbseg::flytable_query("select cell_type, hemibrain_match, root_783 from info")
+lhn_odour_responses2$cell_type <- unlist(fw.meta$cell_type[match(lhn_odour_responses2$hemibrain_match,as.character(fw.meta$hemibrain_match))])
+lhn_odour_responses2 <- lhn_odour_responses2 %>%
+  dplyr::mutate(cell_type = dplyr::case_when(
+    !is.na(cell_type) ~ cell_type,
+    TRUE ~ hemibrain_cell_type))
+
+
+```
+
+
+#
+
+
+
+
+
+
+
+
+
+
+
