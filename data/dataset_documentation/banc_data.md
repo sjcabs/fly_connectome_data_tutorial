@@ -6,7 +6,7 @@
 
 **Publication:** Bates et al. (2025) *bioRxiv* | **Version:** 746 (published)
 **Scale:** 168,791 neurons | ~155 million synapses | ~114 million connections
-**Location:** `gs://sjcabs_2025_data/banc/`
+**Location:** `gs://brain-and-nerve-cord_exports/processed_data/banc/`
 
 ## File Structure
 
@@ -188,16 +188,16 @@ Each subset directory contains filtered metadata, edgelists, and synapse data fo
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://sjcabs_2025_data/banc/banc_746_meta.feather")
-edgelist = pd.read_feather("gs://sjcabs_2025_data/banc/banc_746_simple_edgelist.feather")
-synapses = pd.read_parquet("gs://sjcabs_2025_data/banc/banc_746_synapses.parquet")
+meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather")
+edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_simple_edgelist.feather")
+synapses = pd.read_parquet("gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.parquet")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://sjcabs_2025_data/banc/banc_746_meta.feather")
-edgelist <- read_feather("gs://sjcabs_2025_data/banc/banc_746_simple_edgelist.feather")
-synapses <- read_parquet("gs://sjcabs_2025_data/banc/banc_746_synapses.parquet")
+meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather")
+edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_simple_edgelist.feather")
+synapses <- read_parquet("gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.parquet")
 ```

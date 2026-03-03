@@ -25,7 +25,7 @@ dataset <- "fafb_783"
 dataset_id <- "fafb_783_id"
 
 # Data location - can be GCS bucket or local path
-data_path <- "gs://sjcabs_2025_data"
+data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
 
 # Detect if using GCS or local path
 use_gcs <- grepl("^gs://", data_path)

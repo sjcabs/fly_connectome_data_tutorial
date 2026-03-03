@@ -3529,7 +3529,7 @@ ventral nerve cord)</li>
 <li><strong>VNC-only dataset</strong>: <a href="../data/dataset_documentation/manc_data.md">MANC</a></li>
 </ul>
 <p><strong>Currently working with dataset:</strong> banc_746
-<strong>Data location:</strong> gs://sjcabs_2025_data (Google Cloud
+<strong>Data location:</strong> gs://brain-and-nerve-cord_exports/processed_data (Google Cloud
 Storage)</p>
 </div>
 <div id="setup-data-access" class="section level2">
@@ -3598,20 +3598,20 @@ required! - <strong>Pros:</strong> No local storage needed, always
 up-to-date - <strong>Cons:</strong> Slower (3-5 min for large files),
 requires authentication &amp; internet</p>
 <p><strong>GCS bucket location:</strong>
-<code>gs://sjcabs_2025_data/</code></p>
+<code>gs://brain-and-nerve-cord_exports/processed_data/</code></p>
 </div>
 <div id="option-2-local-access-faster-for-repeated-use" class="section level3">
 <h3>Option 2: Local Access (Faster for Repeated Use)</h3>
 <p>Download data once with <code>gsutil</code>, then access locally:</p>
 <pre class="bash"><code># Download specific dataset (e.g., BANC metadata + synapses)
-gsutil -m cp gs://sjcabs_2025_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
-gsutil -m cp gs://sjcabs_2025_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
+gsutil -m cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
+gsutil -m cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
 
 # Or download entire dataset directory
-gsutil -m cp -r gs://sjcabs_2025_data/banc ~/data/sjcabs_data/
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data/banc ~/data/sjcabs_data/
 
 # Or download all datasets (~500 GB total)
-gsutil -m cp -r gs://sjcabs_2025_data ~/data/</code></pre>
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data ~/data/</code></pre>
 <p>Then update the setup chunk:</p>
 <pre class="r"><code>data_path &lt;- &quot;~/data/sjcabs_data&quot;  # Use your local path</code></pre>
 <p><strong>Pros:</strong> Much faster (seconds instead of minutes),
@@ -3622,11 +3622,11 @@ means you don’t need to load entire files into RAM!</p>
 </div>
 <div id="available-datasets" class="section level3">
 <h3>Available Datasets</h3>
-<pre class="bash"><code>gs://sjcabs_2025_data/banc/
-gs://sjcabs_2025_data/fafb/
-gs://sjcabs_2025_data/manc/
-gs://sjcabs_2025_data/hemibrain/
-gs://sjcabs_2025_data/malecns/</code></pre>
+<pre class="bash"><code>gs://brain-and-nerve-cord_exports/processed_data/banc/
+gs://brain-and-nerve-cord_exports/processed_data/fafb/
+gs://brain-and-nerve-cord_exports/processed_data/manc/
+gs://brain-and-nerve-cord_exports/processed_data/hemibrain/
+gs://brain-and-nerve-cord_exports/processed_data/malecns/</code></pre>
 </div>
 </div>
 <div id="core-tutorial" class="section level1">
@@ -3659,7 +3659,7 @@ if (use_gcs) {
 meta_path &lt;- construct_path(data_path, dataset, &quot;meta&quot;)
 synapse_path &lt;- construct_path(data_path, dataset, &quot;synapses&quot;)
 meta_full &lt;- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_meta.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 9.84 MB from GCS
 ## Loading into memory with Arrow...
@@ -3813,7 +3813,7 @@ thousands per fly brain.</p>
 <p>Let’s load the metadata and filter for Kenyon cells:</p>
 <pre class="r"><code># Read metadata into memory (using custom read_feather_smart() function)
 meta_full &lt;- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_meta.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 9.84 MB from GCS
 ## Loading into memory with Arrow...
@@ -3898,7 +3898,7 @@ al. 2014</a>.</p>
 dataset_base &lt;- sub(&quot;_[0-9]+$&quot;, &quot;&quot;, dataset)
 mb_synapses_path &lt;- file.path(data_path, dataset_base, &quot;mushroom_body&quot;, paste0(dataset, &quot;_mushroom_body_synapses.feather&quot;))
 mb_synapses &lt;- read_feather_smart(mb_synapses_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/banc/mushroom_body/banc_746_mushroom_body_synapses.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/mushroom_body/banc_746_mushroom_body_synapses.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 230.79 MB from GCS
 ## Loading into memory with Arrow...

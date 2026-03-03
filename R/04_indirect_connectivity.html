@@ -3562,7 +3562,7 @@ decomposition with caching for repeated calculations</li>
 activation experiments</li>
 </ol>
 <p><strong>Currently working with dataset:</strong> banc_746
-<strong>Data location:</strong> gs://sjcabs_2025_data (Google Cloud
+<strong>Data location:</strong> gs://brain-and-nerve-cord_exports/processed_data (Google Cloud
 Storage)</p>
 <p>One way in which we can use these indirect measures, is to understand
 how sensory neurons from across the body, and effector neuron that
@@ -3604,7 +3604,7 @@ if (use_gcs) {
 meta_path &lt;- construct_path(data_path, dataset, &quot;meta&quot;)
 meta &lt;- read_feather_gcs(meta_path, use_gcs = use_gcs)</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_meta.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 9.84 MB from GCS
 ## Loading into memory with Arrow...
@@ -3613,7 +3613,7 @@ meta &lt;- read_feather_gcs(meta_path, use_gcs = use_gcs)</code></pre>
 edgelist_path &lt;- construct_path(data_path, dataset, &quot;edgelist_simple&quot;)
 edgelist_simple &lt;- read_feather_gcs(edgelist_path, use_gcs = use_gcs)</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_simple_edgelist.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_simple_edgelist.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 3429.91 MB from GCS
 ## Loading into memory with Arrow...
@@ -4011,7 +4011,7 @@ meta_path1 &lt;- construct_path(data_path, dataset1, &quot;meta&quot;)
 meta1 &lt;- read_feather_gcs(meta_path1, use_gcs = use_gcs) %&gt;%
   rename(root_id = !!sym(dataset_id1))</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_meta.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 9.84 MB from GCS
 ## Loading into memory with Arrow...
@@ -4020,7 +4020,7 @@ meta1 &lt;- read_feather_gcs(meta_path1, use_gcs = use_gcs) %&gt;%
 edgelist_simple1 &lt;- read_feather_gcs(edgelist_path1, use_gcs = use_gcs) %&gt;%
   filter(norm &gt;= 0.0001)</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_simple_edgelist.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_simple_edgelist.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 3429.91 MB from GCS
 ## Loading into memory with Arrow...
@@ -4032,7 +4032,7 @@ meta_path2 &lt;- construct_path(data_path, dataset2, &quot;meta&quot;)
 meta2 &lt;- read_feather_gcs(meta_path2, use_gcs = use_gcs) %&gt;%
   rename(root_id = !!sym(dataset_id2))</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/malecns/malecns_09_meta.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 12.23 MB from GCS
 ## Loading into memory with Arrow...
@@ -4041,7 +4041,7 @@ meta2 &lt;- read_feather_gcs(meta_path2, use_gcs = use_gcs) %&gt;%
 edgelist_simple2 &lt;- read_feather_gcs(edgelist_path2, use_gcs = use_gcs) %&gt;%
   filter(norm &gt;= 0.0001)</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/malecns/malecns_09_simple_edgelist.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_simple_edgelist.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 1557.85 MB from GCS
 ## Loading into memory with Arrow...
@@ -4319,7 +4319,7 @@ abdominal_edgelist_path &lt;- file.path(subset_dir, paste0(dataset, &quot;_&quot
 # Read the edgelist for this subset
 abdominal_edgelist &lt;- read_feather_gcs(abdominal_edgelist_path, use_gcs = use_gcs)</code></pre>
 <pre><code>## Authenticating with Google Cloud Storage...
-## Reading from GCS: gs://sjcabs_2025_data/banc/abdominal_neuromere/banc_746_abdominal_neuromere_simple_edgelist.feather 
+## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/abdominal_neuromere/banc_746_abdominal_neuromere_simple_edgelist.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 7.5 MB from GCS
 ## Loading into memory with Arrow...

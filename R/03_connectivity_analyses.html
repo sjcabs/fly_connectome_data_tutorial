@@ -3550,7 +3550,7 @@ subset.</p>
 <ul>
 <li><strong>Dataset:</strong> banc_746</li>
 <li><strong>Subset:</strong> suboesophageal_zone</li>
-<li><strong>Data location:</strong> gs://sjcabs_2025_data (Google Cloud
+<li><strong>Data location:</strong> gs://brain-and-nerve-cord_exports/processed_data (Google Cloud
 Storage)</li>
 </ul>
 </div>
@@ -3643,7 +3643,7 @@ meta_path &lt;- construct_path(data_path, dataset, &quot;meta&quot;)</code></pre
 <p>Now read in the chosen edgelist:</p>
 <pre class="r"><code># Read edgelist
 edgelist &lt;- read_feather_smart(edgelist_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/banc/suboesophageal_zone/banc_746_suboesophageal_zone_simple_edgelist.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/suboesophageal_zone/banc_746_suboesophageal_zone_simple_edgelist.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 27.11 MB from GCS
 ## Loading into memory with Arrow...
@@ -3663,7 +3663,7 @@ head(edgelist)</code></pre>
 (<code>pre</code> + <code>post</code>):</p>
 <pre class="r"><code># Read full meta data
 meta_full &lt;- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/banc/banc_746_meta.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 9.84 MB from GCS
 ## Loading into memory with Arrow...

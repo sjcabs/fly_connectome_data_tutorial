@@ -6,7 +6,7 @@
 
 **Publication:** Scheffer et al. (2020) eLife | **Version:** v1.2.1
 **Scale:** 25,397 neurons | ~27 million synapses | ~4.7 million connections
-**Location:** `gs://sjcabs_2025_data/hemibrain/`
+**Location:** `gs://brain-and-nerve-cord_exports/processed_data/hemibrain/`
 
 ## File Structure
 
@@ -154,18 +154,18 @@ hemibrain/
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://sjcabs_2025_data/hemibrain/hemibrain_121_meta.feather")
-edgelist = pd.read_feather("gs://sjcabs_2025_data/hemibrain/hemibrain_121_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://sjcabs_2025_data/hemibrain/hemibrain_121_split_edgelist.feather")
+meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_meta.feather")
+edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_simple_edgelist.feather")
+split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_split_edgelist.feather")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://sjcabs_2025_data/hemibrain/hemibrain_121_meta.feather")
-edgelist <- read_feather("gs://sjcabs_2025_data/hemibrain/hemibrain_121_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://sjcabs_2025_data/hemibrain/hemibrain_121_split_edgelist.feather")
+meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_meta.feather")
+edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_simple_edgelist.feather")
+split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_split_edgelist.feather")
 ```
 
 ---

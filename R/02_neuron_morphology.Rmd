@@ -59,7 +59,7 @@ You can change which subset and dataset to examine, by changing these two variab
 # Choose dataset and subset
 dataset <- "banc_746"
 dataset_id <- "banc_746_id"
-data_path <- "gs://sjcabs_2025_data"
+data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
 subset_name <- "front_leg"
 neuropil_pattern <- "T1"
 

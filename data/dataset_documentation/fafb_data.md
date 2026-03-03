@@ -6,7 +6,7 @@
 
 **Publication:** Dorkenwald et al. (2024) Nature; Schlegel et al. (2024) Nature | **Version:** 783 (published)
 **Scale:** 139,213 neurons | ~69 million synapses | ~15 million connections
-**Location:** `gs://sjcabs_2025_data/fafb/`
+**Location:** `gs://brain-and-nerve-cord_exports/processed_data/fafb/`
 
 ## File Structure
 
@@ -174,20 +174,20 @@ fafb/
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://sjcabs_2025_data/fafb/fafb_783_meta.feather")
-edgelist = pd.read_feather("gs://sjcabs_2025_data/fafb/fafb_783_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://sjcabs_2025_data/fafb/fafb_783_split_edgelist.feather")
-synapses = pd.read_parquet("gs://sjcabs_2025_data/fafb/fafb_783_synapses.parquet")
+meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_meta.feather")
+edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_simple_edgelist.feather")
+split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_split_edgelist.feather")
+synapses = pd.read_parquet("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_synapses.parquet")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://sjcabs_2025_data/fafb/fafb_783_meta.feather")
-edgelist <- read_feather("gs://sjcabs_2025_data/fafb/fafb_783_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://sjcabs_2025_data/fafb/fafb_783_split_edgelist.feather")
-synapses <- read_parquet("gs://sjcabs_2025_data/fafb/fafb_783_synapses.parquet")
+meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_meta.feather")
+edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_simple_edgelist.feather")
+split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_split_edgelist.feather")
+synapses <- read_parquet("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_synapses.parquet")
 ```
 
 ---

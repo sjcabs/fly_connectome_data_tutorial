@@ -66,7 +66,7 @@ conda activate sjcabs
 
 ### Data Access
 
-Tutorials access data from Google Cloud Storage: `gs://sjcabs_2025_data/`
+Tutorials access data from Google Cloud Storage: `gs://brain-and-nerve-cord_exports/processed_data/`
 
 **Authentication:**
 ```bash
@@ -76,7 +76,7 @@ gcloud auth application-default login
 **Or download data locally:**
 ```bash
 # Download specific dataset
-gsutil -m cp -r gs://sjcabs_2025_data/banc/ ~/data/sjcabs_data/
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data/banc/ ~/data/sjcabs_data/
 ```
 
 ### Running Tutorials
@@ -110,7 +110,7 @@ Each tutorial follows the same pattern:
 
 ## Template Code for Common Analyses
 
-This section provides reusable code patterns for common connectome analyses. All examples assume the data structures from `gs://sjcabs_2025_data/`:
+This section provides reusable code patterns for common connectome analyses. All examples assume the data structures from `gs://brain-and-nerve-cord_exports/processed_data/`:
 
 **Data files:**
 - `*_meta.feather` - Neuron metadata (columns: root_id, flow, super_class, cell_class, cell_sub_class, cell_type, neurotransmitter_predicted, etc.)

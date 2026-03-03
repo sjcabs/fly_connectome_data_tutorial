@@ -6,7 +6,7 @@
 
 **Publications:** Takemura et al. (2024) eLife; Marin et al. (2024) eLife; Cheong et al. (2024) eLife | **Version:** v1.2.1
 **Scale:** 23,650 neurons | ~31 million synapses | ~5.3 million connections
-**Location:** `gs://sjcabs_2025_data/manc/`
+**Location:** `gs://brain-and-nerve-cord_exports/processed_data/manc/`
 
 ## File Structure
 
@@ -155,20 +155,20 @@ manc/
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://sjcabs_2025_data/manc/manc_121_meta.feather")
-edgelist = pd.read_feather("gs://sjcabs_2025_data/manc/manc_121_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://sjcabs_2025_data/manc/manc_121_split_edgelist.feather")
-synapses = pd.read_feather("gs://sjcabs_2025_data/manc/manc_121_synapses.feather")
+meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_meta.feather")
+edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_simple_edgelist.feather")
+split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_split_edgelist.feather")
+synapses = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_synapses.feather")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://sjcabs_2025_data/manc/manc_121_meta.feather")
-edgelist <- read_feather("gs://sjcabs_2025_data/manc/manc_121_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://sjcabs_2025_data/manc/manc_121_split_edgelist.feather")
-synapses <- read_feather("gs://sjcabs_2025_data/manc/manc_121_synapses.feather")
+meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_meta.feather")
+edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_simple_edgelist.feather")
+split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_split_edgelist.feather")
+synapses <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_synapses.feather")
 ```
 
 ---

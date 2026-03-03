@@ -19,7 +19,7 @@ dataset_id <- "banc_746_id"
 
 # Data location - can be GCS bucket or local path
 # Option 1 (GCS - default): Access data directly from Google Cloud Storage
-data_path <- "gs://sjcabs_2025_data"
+data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
 
 # Option 2 (Local): Use local copy if you've downloaded the data with gsutil
 # data_path <- "/path/to/local/sjcabs_data"
@@ -118,21 +118,21 @@ Access data directly from Google Cloud Storage - no manual download required!
 - **Pros:** No local storage needed, always up-to-date
 - **Cons:** Slower (3-5 min for large files), requires authentication & internet
 
-**GCS bucket location:** `gs://sjcabs_2025_data/`
+**GCS bucket location:** `gs://brain-and-nerve-cord_exports/processed_data/`
 
 ### Option 2: Local Access (Faster for Repeated Use)
 Download data once with `gsutil`, then access locally:
 
 ```bash
 # Download specific dataset (e.g., BANC metadata + synapses)
-gsutil -m cp gs://sjcabs_2025_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
-gsutil -m cp gs://sjcabs_2025_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
+gsutil -m cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
+gsutil -m cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
 
 # Or download entire dataset directory
-gsutil -m cp -r gs://sjcabs_2025_data/banc ~/data/sjcabs_data/
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data/banc ~/data/sjcabs_data/
 
 # Or download all datasets (~500 GB total)
-gsutil -m cp -r gs://sjcabs_2025_data ~/data/
+gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data ~/data/
 ```
 
 Then update the setup chunk:
@@ -148,11 +148,11 @@ data_path <- "~/data/sjcabs_data"  # Use your local path
 ### Available Datasets
 
 ```bash
-gs://sjcabs_2025_data/banc/
-gs://sjcabs_2025_data/fafb/
-gs://sjcabs_2025_data/manc/
-gs://sjcabs_2025_data/hemibrain/
-gs://sjcabs_2025_data/malecns/
+gs://brain-and-nerve-cord_exports/processed_data/banc/
+gs://brain-and-nerve-cord_exports/processed_data/fafb/
+gs://brain-and-nerve-cord_exports/processed_data/manc/
+gs://brain-and-nerve-cord_exports/processed_data/hemibrain/
+gs://brain-and-nerve-cord_exports/processed_data/malecns/
 ```
 
 # Core tutorial

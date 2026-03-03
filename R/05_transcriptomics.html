@@ -3547,7 +3547,7 @@ synaptic partners</p>
 Brain)</li>
 <li><strong>Transcriptomics:</strong> Visual system cell types (96h
 development)</li>
-<li><strong>Data location:</strong> gs://sjcabs_2025_data (Google Cloud
+<li><strong>Data location:</strong> gs://brain-and-nerve-cord_exports/processed_data (Google Cloud
 Storage)</li>
 </ul>
 <hr />
@@ -3916,7 +3916,7 @@ meta_path &lt;- construct_path(data_path, dataset, &quot;meta&quot;)
 
 # Read metadata
 meta_full &lt;- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/fafb/fafb_783_meta.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_meta.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 8.86 MB from GCS
 ## Loading into memory with Arrow...
@@ -4006,7 +4006,7 @@ edgelist_path &lt;- construct_path(data_path, dataset, &quot;edgelist_simple&quo
 cat(&quot;Loading FAFB edgelist (this may take 1-2 minutes)...\n&quot;)</code></pre>
 <pre><code>## Loading FAFB edgelist (this may take 1-2 minutes)...</code></pre>
 <pre class="r"><code>edgelist_full &lt;- read_feather_smart(edgelist_path, gcs_filesystem = gcs_fs)</code></pre>
-<pre><code>## Reading from GCS: gs://sjcabs_2025_data/fafb/fafb_783_simple_edgelist.feather 
+<pre><code>## Reading from GCS: gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_simple_edgelist.feather 
 ## Downloading from GCS... (this may take several minutes for large files)
 ## Downloaded 288.61 MB from GCS
 ## Loading into memory with Arrow...

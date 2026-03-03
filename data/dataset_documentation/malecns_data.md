@@ -6,7 +6,7 @@
 
 **Publication:** Berg et al. (2025) bioRxiv | **Version:** v0.9
 **Scale:** 165,114 neurons | ~301 million synapses | 11,691 cell types
-**Location:** `gs://sjcabs_2025_data/malecns/`
+**Location:** `gs://brain-and-nerve-cord_exports/processed_data/malecns/`
 
 ## File Structure
 
@@ -196,20 +196,20 @@ Each subset directory contains filtered metadata, edgelists, and synapse data fo
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://sjcabs_2025_data/malecns/malecns_09_meta.feather")
-edgelist = pd.read_feather("gs://sjcabs_2025_data/malecns/malecns_09_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://sjcabs_2025_data/malecns/malecns_09_split_edgelist.feather")
-synapses = pd.read_parquet("gs://sjcabs_2025_data/malecns/malecns_09_synapses.parquet")
+meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_meta.feather")
+edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_simple_edgelist.feather")
+split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_split_edgelist.feather")
+synapses = pd.read_parquet("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_synapses.parquet")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://sjcabs_2025_data/malecns/malecns_09_meta.feather")
-edgelist <- read_feather("gs://sjcabs_2025_data/malecns/malecns_09_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://sjcabs_2025_data/malecns/malecns_09_split_edgelist.feather")
-synapses <- read_parquet("gs://sjcabs_2025_data/malecns/malecns_09_synapses.parquet")
+meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_meta.feather")
+edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_simple_edgelist.feather")
+split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_split_edgelist.feather")
+synapses <- read_parquet("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_synapses.parquet")
 ```
 
 ---

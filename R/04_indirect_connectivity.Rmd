@@ -17,7 +17,7 @@ dataset <- "malecns_09"
 dataset_id <- "malecns_09_id"
 
 # Data location
-data_path <- "gs://sjcabs_2025_data"
+data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
 
 # Detect if using GCS or local path
 use_gcs <- grepl("^gs://", data_path)
