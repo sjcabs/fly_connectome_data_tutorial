@@ -1,8 +1,3 @@
-> [!IMPORTANT]
-> The Google Cloud Storage location you need to access for this tutorial, is currently not public.
-> We are working on providing a publicly accessible location for April/May 2026.
-> In the meantime, you can contact Alexander Bates for data access
-
 # Fly Connectome Data Tutorial
 
 Tutorial materials for working with Drosophila connectome datasets at the [San Juan Winter School on Connectomics and Brain Simulation (SJCABS)](https://sjcabs.com/). We will work with all the major, dense connectome datasets for the fruit fly.
