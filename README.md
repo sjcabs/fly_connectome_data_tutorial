@@ -159,7 +159,7 @@ Analysis tools:
 
 ## Data Organisation
 
-All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/processed_data)**
+All processed data is hosted on Google Cloud Storage: **[Access Data](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data)**
 
 To download and work with this data locally, you will need `gsutil`, in terminal you can install and configure with:
 
@@ -182,7 +182,7 @@ gcloud auth login
 gcloud auth application-default login
 
 # 4) Test access to the bucket
-gsutil ls gs://brain-and-nerve-cord_exports/processed_data/
+gsutil ls gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/
 
 # Outcomes:
 #  - If you see object names: access OK.
@@ -193,43 +193,67 @@ gsutil ls gs://brain-and-nerve-cord_exports/processed_data/
 You can browse and download files directly from the browser, or use command-line tools:
 ```bash
 # List available datasets
-gsutil ls gs://brain-and-nerve-cord_exports/processed_data/
+gsutil ls gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/
 
 # Download a specific file
-gsutil cp gs://brain-and-nerve-cord_exports/processed_data/path/to/file .
+gsutil cp gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_meta.feather .
 
-# Download an entire folder
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data/folder_name .
+# Download an entire dataset folder
+gsutil -m cp -r gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888 .
 ```
 
 ### Example Structure (BANC)
 ```
-banc/
-├── banc_data.md                       # Describes each data object at this location, inc. column meanings
-├── banc_746_meta.feather              # Neuron annotations
-├── banc_746_edgelist_simple.feather   # Neuron-to-neuron connectivity
-├── banc_746_synapses.feather          # Individual synapse data
-├── banc_746_skeletons_in_banc_space.zip  # 3D morphologies (SWC format)
-├── abdominal_neuromere/               # Subset: abdominal control circuits
-├── antennal_lobe/                     # Subset: olfactory circuits
-├── central_complex/                   # Subset: navigation circuits
-├── front_leg/                         # Subset: front leg control
-├── mushroom_body/                     # Subset: associative memory circuits
-├── optic/                             # Subset: visual processing circuits
-└── suboesophageal_zone/              # Subset: feeding and tactile circuits
+compiled_data/banc_888/
+├── banc_888_meta.feather                  # Neuron annotations
+├── banc_888_edgelist_simple_v3.feather    # Neuron-to-neuron connectivity (latest)
+├── banc_888_edgelist_simple_v2.feather    # Older neuron-to-neuron connectivity
+├── banc_888_edgelist_split.feather        # Compartment-to-compartment connectivity
+├── banc_888_synapses_v2_enriched.parquet  # Individual synapse data with neuropil/region/NT
+└── banc_888_metrics.feather               # Cable length, volume, synapse counts per neuron
 ```
+
+BANC neuron skeletons and region meshes are stored at the bucket root rather than inside
+`compiled_data/`:
+
+```
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/
+├── neuron_skeletons/swcs-from-pcg-skel/   # Per-neuron SWC files in BANC space
+├── neuron_skeletons.zip                    # Zipped copy of the above
+├── neuron_meshes/                          # BANC neuron meshes (Neuroglancer precomputed)
+└── region_outlines/                        # BANC region meshes (Neuroglancer precomputed)
+```
+
+The other datasets (FAFB, MANC, Hemibrain, maleCNS) keep their SWC and OBJ assets inside
+their `compiled_data/{dataset}_{version}/` folder. See the per-dataset documentation files
+for the exact contents.
 
 ### File Types
 - **`*_meta.feather`** - Metadata for each neuron: cell type, brain region, neurotransmitter, developmental lineage ([schema details](data/meta_data_entries.csv))
-- **`*_edgelist_simple.feather`** - Connectivity matrix showing which neurons connect to which, with connection strengths
-- **`*_synapses.feather`** - Coordinates and properties of individual synapses
-- **`*_skeletons_*.zip`** - 3D skeleton reconstructions in SWC format
+- **`*_simple_edgelist.feather`** (or `*_edgelist_simple_v3.feather` for BANC) - Connectivity matrix showing which neurons connect to which, with connection strengths
+- **`*_split_edgelist.feather`** (or `*_edgelist_split.feather` for BANC) - Compartment-to-compartment connectivity (axon → dendrite, etc.)
+- **`*_synapses.{feather,parquet}`** - Coordinates and properties of individual synapses
+- **`*_swc/` directories** - 3D skeleton reconstructions in SWC format (one file per neuron)
 
 See individual dataset documentation files in [`data/dataset_documentation/`](data/dataset_documentation/) for detailed column descriptions.
 
-### Neural System Subsets
+### Subsetting by Neural System / Region
 
-We provide curated subsets focusing on specific circuits:
+The previous release shipped pre-computed subset folders (`mushroom_body/`, `antennal_lobe/`,
+`central_complex/`, `optic/`, `suboesophageal_zone/`, `front_leg/`, `abdominal_neuromere/`)
+inside each dataset directory. **These subset folders no longer exist** — the tutorials now
+build the equivalent subsets in code, mirroring the original logic from
+[`bancpipeline/banc/share/banc-sjcabs.R`](https://github.com/flyconnectome/bancpipeline).
+
+The `subset_by_region()` helper in `R/setup/functions.R` and `python/utils.py`
+applies the same filters that produced the old folders:
+
+- **Antennal lobe / central complex / mushroom body** → regex match against the metadata
+  hierarchy (`super_class`, `cell_class`, `cell_sub_class`, `cell_type`).
+- **Optic lobe / suboesophageal zone / front leg / abdominal neuromere** → filter the
+  synapse table by `neuropil` regex with a ≥100 synapse threshold per neuron.
+
+The biology each subset targets is unchanged:
 
 - **Antennal Lobe**: Primary olfactory processing centre receiving input from olfactory receptor neurons and projecting to higher brain regions via projection neurons. Critical for odour discrimination and learning.
 
@@ -248,55 +272,83 @@ We provide curated subsets focusing on specific circuits:
 ## Detailed Data Inventory
 
 ### BANC (Brain and Nerve Cord)
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/processed_data/banc)** | `gs://brain-and-nerve-cord_exports/processed_data/banc/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888)** | `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/`
 
-- [`banc_746_meta.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather) (0.01 GB) - Metadata
-- [`banc_746_simple_edgelist.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/processed_data/banc/banc_746_simple_edgelist.feather) (4.8 GB) - Connectivity
-- [`banc_746_synapses.feather`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.feather) (10.2 GB) - Synapses
-- [`banc_banc_space_l2_swc.zip`](https://console.cloud.google.com/storage/browser/_details/brain-and-nerve-cord_exports/processed_data/banc/banc_banc_space_l2_swc.zip) - Skeletons
-- **Curated subsets:** `abdominal_neuromere/`, `antennal_lobe/`, `central_complex/`, `front_leg/`, `mushroom_body/`, `optic/`, `suboesophageal_zone/`
+- `banc_888_meta.feather` (~48 MB) - Metadata (188,153 neurons)
+- `banc_888_edgelist_simple_v3.feather` (~336 MB) - Neuron-to-neuron connectivity (latest)
+- `banc_888_edgelist_simple_v2.feather` (~285 MB) - Older neuron-to-neuron connectivity
+- `banc_888_edgelist_split.feather` (~321 MB) - Compartment-to-compartment connectivity
+- `banc_888_synapses_v2_enriched.parquet` (~9.6 GB) - Individual synapses (neuropil/region/NT enriched)
+- `banc_888_metrics.feather` (~7.5 MB) - Per-neuron cable length, volume, synapse counts
+
+Skeletons and region meshes for BANC are at the bucket root:
+
+- `gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_skeletons/swcs-from-pcg-skel/` - Per-neuron SWC files (BANC space)
+- `gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_skeletons.zip` - Zipped SWC bundle (~206 MB)
+- `gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_meshes/` - BANC neuron meshes (Neuroglancer precomputed)
+- `gs://lee-lab_brain-and-nerve-cord-fly-connectome/region_outlines/` - BANC region meshes (Neuroglancer precomputed)
 
 ### FAFB (Full Adult Fly Brain)
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/processed_data/fafb)** | `gs://brain-and-nerve-cord_exports/processed_data/fafb/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/fafb_783)** | `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/fafb_783/`
 
-- `fafb_783_meta.feather` (~0.01 GB) - Metadata
-- `fafb_783_simple_edgelist.feather` (~5 GB) - Connectivity
-- `fafb_783_split_edgelist.feather` (~10 GB) - Compartment connectivity
-- `fafb_783_synapses.feather` (~12 GB) - Synapses
-- `fafb_783_banc_space_swc.zip` - Skeletons (BANC space)
-- `fafb_fafb_space_swc.zip` - Skeletons (native FAFB space)
-- **Curated subsets:** `antennal_lobe/`, `central_complex/`, `mushroom_body/`, `optic/`, `suboesophageal_zone/`
+- `fafb_783_meta.feather` (~10 MB) - Metadata
+- `fafb_783_simple_edgelist.feather` (~289 MB) - Neuron-to-neuron connectivity
+- `fafb_783_split_edgelist.feather` (~523 MB) - Compartment connectivity
+- `fafb_783_synapses.feather` (~4.0 GB) / `fafb_783_synapses.parquet` (~1.7 GB) - Individual synapses
+- `fafb_783_cell_dcv_detection.feather` (~9.7 GB) - Cellular dense-core-vesicle detections
+- `fafb_783_soma_dcv_detection.feather` (~3.7 GB) - Somatic DCV detections
+- `fafb_dcv_scores_metadata_ya_3_5_26.csv` (~15 MB) - DCV detection metadata
+- `fafb_fafb_space_swc/` - Skeletons in native FAFB space
+- `fafb_banc_space_swc/` - Skeletons in BANC space
+- `obj/` - FAFB volume and per-neuropil OBJ meshes
 
 ### MANC (Male Adult Nerve Cord)
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/processed_data/manc)** | `gs://brain-and-nerve-cord_exports/processed_data/manc/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121)** | `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121/`
 
-- `manc_121_meta.feather` (~0.005 GB) - Metadata
-- `manc_121_simple_edgelist.feather` (~1.5 GB) - Connectivity
-- `manc_121_split_edgelist.feather` (~3 GB) - Compartment connectivity
-- `manc_121_synapses.feather` (~4 GB) - Synapses
-- `manc_banc_space_swc.zip` - Skeletons (BANC space)
+- `manc_121_meta.feather` (~1.4 MB) - Metadata
+- `manc_121_simple_edgelist.feather` (~83 MB) - Neuron-to-neuron connectivity
+- `manc_121_split_edgelist.feather` (~321 MB) - Compartment connectivity
+- `manc_121_synapses.feather` (~3.6 GB) / `manc_121_synapses.parquet` (~2.4 GB) - Individual synapses
+- `manc_manc_space_swc/` - Skeletons in native MANC space
+- `manc_banc_space_split_swc/` - Skeletons in BANC space (split by compartment)
+- `obj/` - MANC volume and neuropil OBJ meshes
 
 ### Hemibrain
-**[Browse Files](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/processed_data/hemibrain)** | `gs://brain-and-nerve-cord_exports/processed_data/hemibrain/`
+**[Browse Files](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/hemibrain_121)** | `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/hemibrain_121/`
 
-- `hemibrain_121_meta.feather` (~0.005 GB) - Metadata
-- `hemibrain_121_simple_edgelist.feather` (~2 GB) - Connectivity
-- `hemibrain_121_split_edgelist.feather` (~4 GB) - Compartment connectivity
-- `hemibrain_121_synapses.feather` (~5 GB) - Synapses
-- `hemibrain_banc_space_swc.zip` - Skeletons (BANC space)
-- `hemibrain_hemibrain_raw_space_swc.zip` - Skeletons (native space)
-- `neuropils/`, `obj/` - Mesh data
+- `hemibrain_121_meta.feather` (~1.9 MB) - Metadata
+- `hemibrain_121_simple_edgelist.feather` (~88 MB) - Neuron-to-neuron connectivity
+- `hemibrain_121_split_edgelist.feather` (~145 MB) - Compartment connectivity
+- `hemibrain_121_synapses.feather` (~13 KB summary) / `hemibrain_121_synapses.parquet` (~862 MB)
+- `hemibrain_hemibrain_raw_space_swc/` - Skeletons in native Hemibrain space
+- `hemibrain_banc_space_swc/` - Skeletons in BANC space
+- `obj/`, `neuropils/` - Hemibrain volume and per-glomerulus/neuropil OBJ meshes
+
+### Male CNS
+**[Browse Files](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/malecns_09)** | `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/malecns_09/`
+
+- `malecns_09_meta.feather` (~9.7 MB) - Metadata
+- `malecns_09_simple_edgelist.feather` (~3.2 GB) - Neuron-to-neuron connectivity
+- `malecns_09_split_edgelist.feather` (~4.6 GB) - Compartment connectivity
+- `malecns_09_synapses.parquet` (~7.9 GB) - Individual synapses
+- `malecns_malecns_space_swc/` - Skeletons in native maleCNS space
+- `malecns_banc_space_swc/` - Skeletons in BANC space
+- `obj/` - maleCNS volume and neuropil OBJ meshes
+- `JRC2018U/` - JRC2018-Unisex registration assets
 
 ### Download Examples
 ```bash
 # Small file - metadata (recommended to start)
-gsutil cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather .
+gsutil cp gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_meta.feather .
 
-# Curated subset - much smaller than full dataset
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data/banc/antennal_lobe/ .
+# Whole dataset folder (big — check sizes first!)
+gsutil -m cp -r gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888 .
 
 # Large file - check size first
-gsutil ls -lh gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.feather
+gsutil ls -lh gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_synapses_v2_enriched.parquet
+
+# BANC skeletons live at the bucket root (not under compiled_data/)
+gsutil -m cp -r gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_skeletons/swcs-from-pcg-skel ./banc_swc
 ```
 
 ---
@@ -373,7 +425,7 @@ This tutorial follows a progressive learning path designed to take about 2 hours
 
 If running locally:
 
-1. **Download data** from the [Google Cloud Storage bucket](https://console.cloud.google.com/storage/browser/brain-and-nerve-cord_exports/processed_data) for the dataset(s) you want to work with
+1. **Download data** from the [Google Cloud Storage bucket](https://console.cloud.google.com/storage/browser/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data) for the dataset(s) you want to work with
 2. **Install analysis tools:**
    - **Python:** `pip install navis fafbseg`
    - **R:**

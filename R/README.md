@@ -126,10 +126,10 @@ library(arrow)
 library(dplyr)
 
 # Load metadata
-meta <- read_feather("banc_746_meta.feather")
+meta <- read_feather("banc_888_meta.feather")
 
-# Load edgelist
-edgelist <- read_feather("banc_746_simple_edgelist.feather")
+# Load edgelist (BANC names this `_edgelist_simple_v3` — other datasets use `_simple_edgelist`)
+edgelist <- read_feather("banc_888_edgelist_simple_v3.feather")
 
 # Join with metadata to get cell type annotations
 edgelist_annotated <- edgelist %>%

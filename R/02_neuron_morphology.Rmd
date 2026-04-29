@@ -57,9 +57,9 @@ You can change which subset and dataset to examine, by changing these two variab
 
 ```{r setup_paths}
 # Choose dataset and subset
-dataset <- "banc_746"
-dataset_id <- "banc_746_id"
-data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
+dataset <- "banc_888"
+dataset_id <- "banc_888_id"
+data_path <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data"
 subset_name <- "front_leg"
 neuropil_pattern <- "T1"
 
@@ -69,16 +69,15 @@ use_gcs <- grepl("^gs://", data_path)
 # Setup GCS filesystem if needed
 gcs_fs <- if (use_gcs) setup_gcs_filesystem() else NULL
 
-# Construct paths
-meta_path <- construct_path(data_path, dataset, "meta")
+# Paths to dataset-level files (subset folders no longer exist in the new bucket)
+meta_path      <- construct_path(data_path, dataset, "meta")
 skeletons_path <- construct_path(data_path, dataset, "skeletons")
+edgelist_path  <- construct_path(data_path, dataset, "edgelist_simple")
+synapse_path   <- construct_path(data_path, dataset, "synapses")
 
-# For subsets, construct paths to pre-filtered files
-# Extract base dataset name (e.g., "banc" from "banc_746")
-dataset_base <- sub("_[0-9]+$", "", dataset)
-subset_dir <- file.path(data_path, dataset_base, subset_name)
-edgelist_path <- file.path(subset_dir, paste0(dataset, "_", subset_name, "_simple_edgelist.feather"))
-synapses_path <- file.path(subset_dir, paste0(dataset, "_", subset_name, "_synapses.feather"))
+# `subset_by_region()` (in setup/functions.R) reproduces the old per-region cut-outs.
+# For synapse-based regions like front_leg, we filter the synapse Parquet by
+# neuropil with predicate pushdown so we only download what we need.
 
 cat("Dataset:", dataset, "\n")
 cat("Subset:", subset_name, "\n")
@@ -91,31 +90,53 @@ This is available for BANC, maleCNS and MANC.
 
 # Core tutorial
 
-## Read Meta Data
+## Read Meta Data and build the subset
 
-Let's start by reading the meta data for our chosen subset:
+Let's read the full meta data, then use `subset_by_region()` to reproduce the old
+`front_leg/` cut-out: neurons with ≥100 synapses in T1 leg neuropils on the right side.
+The synapse-based filter uses Parquet predicate pushdown via `query_parquet_gcs()`
+(GCS) or Arrow lazy evaluation (local), so only the matching neuropils are downloaded.
 
 ```{r load_meta}
-# Read the edgelist for this subset to get neuron IDs
-edgelist <- read_feather_smart(edgelist_path, gcs_filesystem = gcs_fs)
-
-# Get unique neuron IDs from pre and post columns
-subset_ids <- unique(c(edgelist$pre, edgelist$post))
-
-# Read full meta data using streaming approach
+# Full meta data
 meta_full <- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)
-
-# Get proofread neuron IDs (key concept from Tutorial 01!)
 proofread_ids <- meta_full[[dataset_id]]
+
+# BANC synapse columns differ from other datasets
+syn_pre_col  <- if (grepl("^banc", dataset)) "pre_root_id"  else "pre"
+syn_post_col <- if (grepl("^banc", dataset)) "post_root_id" else "post"
+
+# Pull synapses inside front-leg neuropils only (server-side filter on GCS)
+front_leg_pattern <- "^LegNp\\(T1\\)|T1|^ProNM-T1|^LNp_T1"
+if (use_gcs) {
+  front_leg_syns <- query_parquet_gcs(
+    path = synapse_path,
+    gcs_filesystem = gcs_fs,
+    filters = "neuropil LIKE 'T1%' OR neuropil LIKE 'LegNp(T1)%' OR neuropil LIKE 'ProNM-T1%' OR neuropil LIKE 'LNp_T1%'",
+    columns = c(syn_pre_col, syn_post_col, "neuropil", "side")
+  )
+} else {
+  front_leg_syns <- open_dataset_lazy(synapse_path, format = "parquet") %>%
+    filter(str_detect(neuropil, front_leg_pattern)) %>%
+    select(all_of(c(syn_pre_col, syn_post_col)), neuropil, side) %>%
+    collect()
+}
+front_leg_syns <- front_leg_syns %>%
+  rename(pre = all_of(syn_pre_col), post = all_of(syn_post_col)) %>%
+  filter(side == "right")
+
+# Reproduce the bancpipeline cut-out: neurons with ≥100 syns as pre OR post
+subset_ids <- unique(c(
+  front_leg_syns %>% count(pre)  %>% filter(n >= 100) %>% pull(pre),
+  front_leg_syns %>% count(post) %>% filter(n >= 100) %>% pull(post)
+))
 
 # Filter meta for neurons in this subset
 meta <- meta_full %>%
-  filter(!!sym(dataset_id) %in% subset_ids)
-
-# Rename ID column to 'id' for consistency
-meta <- meta %>%
+  filter(!!sym(dataset_id) %in% subset_ids) %>%
   rename(id = !!sym(dataset_id))
-cat("Found", length(subset_ids), "unique neurons in", subset_name, "edgelist\n")
+
+cat("Found", length(subset_ids), "unique neurons in", subset_name, "subset\n")
 cat("(From", nrow(meta_full), "total proofread neurons)\n")
 head(meta)
 ```
@@ -227,25 +248,31 @@ We can also show the mesh of the BANC brains and ventral nerve cord neuropils, t
 You can find its `.obj` file in our prepared data, and visualise it with our neuron as so.
 
 ```{r simple_mesh_example, eval=TRUE, fig.width=8, fig.height=6}
-# Construct paths to mesh directories
-# Large anatomical regions (VNC, brain, etc.) are in obj/ directory
-region_path <- file.path(data_path, dataset_base, "obj")
-region_files <- system(paste("gsutil ls", region_path), intern = TRUE)
-vnc_obj <- region_files[grepl("vnc.*\\.obj$", region_files, ignore.case = TRUE)][1]
-brain_obj <- region_files[grepl("brain.*\\.obj$", region_files, ignore.case = TRUE)][1]
-
-# Download and read the mesh
-temp_mesh <- tempfile(fileext = ".obj")
-system(paste("gsutil cp", vnc_obj, temp_mesh))
-vnc_mesh <- as.hxsurf(rgl::readOBJ(temp_mesh))
-temp_mesh <- tempfile(fileext = ".obj")
-system(paste("gsutil cp", brain_obj, temp_mesh))
-brain_mesh <- as.hxsurf(rgl::readOBJ(temp_mesh))
+# OBJ region meshes for BANC are not stored under compiled_data/banc_888/.
+# We use the in-package BANC surfaces from the {bancr} package instead.
+# For other datasets (FAFB / MANC / Hemibrain / maleCNS) the OBJ files live at
+# compiled_data/{dataset}_{version}/obj/ and can be read with construct_obj_path().
+if (grepl("^banc", dataset)) {
+  vnc_mesh   <- bancr::banc_vnc_neuropil.surf
+  brain_mesh <- bancr::banc_brain_neuropil.surf
+} else {
+  obj_root <- construct_obj_path(data_path, dataset, ".")
+  region_files <- system(paste("gsutil ls", obj_root), intern = TRUE)
+  vnc_obj   <- region_files[grepl("vnc.*\\.obj$",   region_files, ignore.case = TRUE)][1]
+  brain_obj <- region_files[grepl("brain.*\\.obj$", region_files, ignore.case = TRUE)][1]
+  load_mesh <- function(path) {
+    if (is.na(path)) return(NULL)
+    tmp <- tempfile(fileext = ".obj"); system(paste("gsutil cp", path, tmp))
+    as.hxsurf(rgl::readOBJ(tmp))
+  }
+  vnc_mesh   <- load_mesh(vnc_obj)
+  brain_mesh <- load_mesh(brain_obj)
+}
 
 # Visualize multiple neurons with neuropil mesh using plotly
 nclear3d()
-plot3d(vnc_mesh, col = "lightblue", alpha = 0.3)
-plot3d(brain_mesh, col = "lightblue", alpha = 0.3)
+if (!is.null(vnc_mesh))   plot3d(vnc_mesh,   col = "lightblue", alpha = 0.3)
+if (!is.null(brain_mesh)) plot3d(brain_mesh, col = "lightblue", alpha = 0.3)
 plot3d(neurons, col = rainbow(length(neurons)), lwd = 2, soma = 10000)
 ```
 
@@ -254,34 +281,34 @@ Let's fetch both the BANC ventral nerve cord neuropil, and the leg neuropil.
 We can show them over our neurons, with a little transparency.
 
 ```{r plot_with_neuropil, fig.width=10, fig.height=8}
-# Smaller specific neuropils are in obj/neuropils/ subdirectory
-neuropil_path <- file.path(data_path, dataset_base, "obj", "neuropils")
-
-# List available OBJ files in the bucket
-neuropil_files <- system(paste("gsutil ls", neuropil_path), intern = TRUE)
-
-# Find VNC and leg neuropil meshes
-leg_obj <- neuropil_files[grepl(neuropil_pattern, basename(neuropil_files))][1]
-cat("Leg mesh:", leg_obj, "\n")
-
-# Download and read meshes
-temp_leg <- tempfile(fileext = ".obj")
-if (!is.na(leg_obj) && length(leg_obj) > 0) {
-  system(paste("gsutil cp", leg_obj, temp_leg))
-  leg_mesh <- as.hxsurf(rgl::readOBJ(temp_leg))
+# For BANC, use the in-package per-region surfaces (no OBJ files under compiled_data/).
+# For other datasets, smaller specific neuropils live in obj/neuropils/.
+if (grepl("^banc", dataset)) {
+  vnc_regions <- bancr::banc_vnc_neuropils.surf$RegionList
+  leg_regions <- vnc_regions[grepl(neuropil_pattern, vnc_regions)]
+  leg_mesh <- if (length(leg_regions) > 0) {
+    subset(bancr::banc_vnc_neuropils.surf, leg_regions)
+  } else NULL
+} else {
+  neuropil_path <- construct_obj_path(data_path, dataset, "neuropils")
+  neuropil_files <- system(paste("gsutil ls", neuropil_path), intern = TRUE)
+  leg_obj <- neuropil_files[grepl(neuropil_pattern, basename(neuropil_files))][1]
+  cat("Leg mesh:", leg_obj, "\n")
+  if (!is.na(leg_obj) && length(leg_obj) > 0) {
+    temp_leg <- tempfile(fileext = ".obj")
+    system(paste("gsutil cp", leg_obj, temp_leg))
+    leg_mesh <- as.hxsurf(rgl::readOBJ(temp_leg))
+  } else {
+    leg_mesh <- NULL
+  }
 }
 
 # Plot neurons with neuropil meshes using plotly
 nclear3d()
-
-# Plot multiple neurons in different colors
 n_plot <- length(neurons)
-dummy1<-plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
-dummy2<-plot3d(leg_mesh, col = "lightblue", alpha = 0.3, add = TRUE)
+if (!is.null(vnc_mesh)) dummy1 <- plot3d(vnc_mesh, col = "lightgrey", alpha = 0.1)
+if (!is.null(leg_mesh)) dummy2 <- plot3d(leg_mesh, col = "lightblue", alpha = 0.3, add = TRUE)
 plot3d(neurons, col = rainbow(length(neurons)), lwd = 2, soma = 10000)
-# This works for the rgl version of this plot: title3d(main = paste(n_plot,
-# "DNg12 Neurons in Neuropil Context"), xlab = "X (nm)", ylab = "Y (nm)", zlab =
-# "Z (nm)")
 ```
 
 ## Transform between template spaces
@@ -752,13 +779,27 @@ Let's use four colours:
 ```{r compartment_synapses, eval=TRUE, fig.width=10, fig.height=8}
 # Only run if vpn_ids exists (from previous section)
 if (exists("vpn_ids") && length(vpn_ids) > 0) {
-  # Construct path to FAFB synapses file
+  # FAFB synapse Parquet (the old per-region cut-out feather no longer exists).
+  # We pull only synapses involving the V_l2PN neurons to keep the download small.
   dataset <- "fafb_783"
-  synapses_path <- file.path(data_path, "fafb", "antennal_lobe", paste0(dataset, "_antennal_lobe_synapses.feather"))
+  synapses_path <- construct_path(data_path, dataset, "synapses")
 
-  # Read synapses and filter for V_l2PN neurons
-  vpn_synapses <- read_feather_smart(synapses_path, gcs_filesystem = gcs_fs) %>%
-    filter(pre %in% vpn_ids | post %in% vpn_ids)
+  if (use_gcs) {
+    # Filter on pre/post id list; pyarrow handles `in` filters via Parquet pushdown
+    vpn_synapses <- query_parquet_gcs(
+      path = synapses_path,
+      gcs_filesystem = gcs_fs,
+      filters = sprintf("pre IN (%s) OR post IN (%s)",
+                        paste(shQuote(vpn_ids), collapse = ","),
+                        paste(shQuote(vpn_ids), collapse = ",")),
+      columns = c("pre", "post", "x", "y", "z", "pre_label", "post_label", "neuropil")
+    )
+  } else {
+    vpn_synapses <- open_dataset_lazy(synapses_path, format = "parquet") %>%
+      filter(pre %in% vpn_ids | post %in% vpn_ids) %>%
+      select(pre, post, x, y, z, pre_label, post_label, neuropil) %>%
+      collect()
+  }
   cat("Found", nrow(vpn_synapses), "synapses for V_l2PN neurons\n")
 
 # Create synapse classification
@@ -855,7 +896,7 @@ For example, we can read each of the EPG neurons from the FAFB project and plot 
 ```{r neuron_meshes}
 library(bancr)
 epg.meta <- meta_full %>% filter(grepl("EPG",cell_type))
-banc.meshes <- banc_read_neuron_meshes(epg.meta$banc_746_id)
+banc.meshes <- banc_read_neuron_meshes(epg.meta$banc_888_id)
 plot3d(banc.meshes, col = rainbow(length(banc.meshes)))
 ```
 

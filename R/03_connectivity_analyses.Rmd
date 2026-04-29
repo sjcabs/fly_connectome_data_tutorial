@@ -20,9 +20,9 @@ knitr::opts_chunk$set(
 )
 
 # Dataset selection - change this to work with different datasets
-# Options: "banc_746", "fafb_783", "manc_121", "hemibrain_121", "malecns_09"
-dataset <- "banc_746"
-dataset_id <- "banc_746_id"
+# Options: "banc_888", "fafb_783", "manc_121", "hemibrain_121", "malecns_09"
+dataset <- "banc_888"
+dataset_id <- "banc_888_id"
 
 # Choose subset (optional) - leave as NULL for full dataset
 # BANC subsets: "suboesophageal_zone", "front_leg", "mushroom_body",
@@ -30,7 +30,7 @@ dataset_id <- "banc_746_id"
 subset_name <- "suboesophageal_zone"  # Set to NULL for full dataset
 
 # Data location - can be GCS bucket or local path
-data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
+data_path <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data"
 
 # Detect if using GCS or local path
 use_gcs <- grepl("^gs://", data_path)
@@ -102,39 +102,48 @@ The suboesophageal zone contains several distinct neuropils. Let's visualize the
 - **Smaller specific neuropils** (GNG, FLA, AMMC, etc.): `obj/neuropils/` subdirectory
 
 ```{r visualize_neuropils, warning=FALSE, message=FALSE, fig.width=10, fig.height=8}
-# Extract base dataset name
-dataset_base <- sub("_[0-9]+$", "", dataset)
-
-# Download and read meshes as hxsurf objects for nat+plotly
-read_neuropil <- function(search, data_path, dataset_base, ext="neuropils"){
-  neuropil_path <- file.path(data_path, dataset_base, "obj", ext)
-  neuropil_files <- suppressWarnings(system(paste("gsutil ls", neuropil_path), intern = TRUE))
+# Helper: read a neuropil mesh.
+# - For BANC: subset the in-package banc_brain_neuropils.surf / banc_vnc_neuropils.surf.
+# - For other datasets: read OBJ files from compiled_data/{dataset}/obj/neuropils/.
+read_neuropil <- function(search, data_path, dataset, ext = "neuropils") {
+  if (grepl("^banc", dataset)) {
+    surfs <- list(bancr::banc_brain_neuropils.surf, bancr::banc_vnc_neuropils.surf)
+    for (s in surfs) {
+      regs <- s$RegionList
+      hit <- regs[grepl(search, regs)]
+      if (length(hit) > 0) return(subset(s, hit))
+    }
+    cat("  No BANC neuropil region matching:", search, "\n")
+    return(NULL)
+  }
+  obj_path <- construct_obj_path(data_path, dataset, ext)
+  if (is.null(obj_path)) return(NULL)
+  neuropil_files <- suppressWarnings(system(paste("gsutil ls", obj_path), intern = TRUE))
   objs <- neuropil_files[grepl(search, basename(neuropil_files))]
-
   if (length(objs) == 0) {
     cat("  No files found matching:", search, "\n")
     return(NULL)
   }
-
-  # Read and convert the first matching file (typically only one per search term)
-  obj_file <- objs[1]
   temp_file <- tempfile(fileext = ".obj")
-  system(paste("gsutil cp", obj_file, temp_file))
-  mesh <- as.hxsurf(rgl::readOBJ(temp_file))
-  return(mesh)
+  system(paste("gsutil cp", objs[1], temp_file))
+  as.hxsurf(rgl::readOBJ(temp_file))
 }
 
 # Read brain mesh (large region)
-brain_mesh <- read_neuropil("brain", data_path, dataset_base, ext = "")
+brain_mesh <- if (grepl("^banc", dataset)) {
+  bancr::banc_brain_neuropil.surf
+} else {
+  read_neuropil("brain", data_path, dataset, ext = ".")
+}
 
 # Read SEZ neuropils (smaller specific regions)
-gng_mesh <- read_neuropil("GNG", data_path, dataset_base)
-fla_l_mesh <- read_neuropil("FLA_L", data_path, dataset_base)
-fla_r_mesh <- read_neuropil("FLA_R", data_path, dataset_base)
-sad_mesh <- read_neuropil("SAD", data_path, dataset_base)
-prw_mesh <- read_neuropil("PRW", data_path, dataset_base)
-ammc_l_mesh <- read_neuropil("AMMC_L", data_path, dataset_base)
-ammc_r_mesh <- read_neuropil("AMMC_R", data_path, dataset_base)
+gng_mesh    <- read_neuropil("GNG",    data_path, dataset)
+fla_l_mesh  <- read_neuropil("FLA_L",  data_path, dataset)
+fla_r_mesh  <- read_neuropil("FLA_R",  data_path, dataset)
+sad_mesh    <- read_neuropil("SAD",    data_path, dataset)
+prw_mesh    <- read_neuropil("PRW",    data_path, dataset)
+ammc_l_mesh <- read_neuropil("AMMC_L", data_path, dataset)
+ammc_r_mesh <- read_neuropil("AMMC_R", data_path, dataset)
 
 # Plot all meshes in 3D with nat+plotly
 nclear3d()
@@ -157,44 +166,72 @@ plot3d(ammc_r_mesh, col = "lightsalmon", alpha = 0.5, add = TRUE)
 We will choose our dataset and optionally a pre-prepared subset. By defauly, let's look at neurons of the SEZ.
 
 ```{r setup_paths}
-# Extract base dataset name (e.g., "banc" from "banc_746")
-dataset_base <- sub("_[0-9]+$", "", dataset)
-
-# Construct paths
-if (!is.null(subset_name)) {
-  # Use subset data
-  subset_dir <- file.path(data_path, dataset_base, subset_name)
-  edgelist_path <- file.path(subset_dir,
-                             paste0(dataset, "_", subset_name, "_simple_edgelist.feather"))
-
-  cat("Using subset:", subset_name, "\n")
-} else {
-  # Use full dataset
-  edgelist_path <- construct_path(data_path, dataset, "edgelist_simple")
-
-  cat("Using full dataset\n")
-}
-
-# Always need full meta data
-meta_path <- construct_path(data_path, dataset, "meta")
+# Pre-computed cut-out folders no longer ship with the bucket. We always read
+# the dataset-level meta + edgelist + synapses, and (if a subset is requested)
+# build the subset in code via subset_by_region().
+meta_path     <- construct_path(data_path, dataset, "meta")
+edgelist_path <- construct_path(data_path, dataset, "edgelist_simple")
+synapse_path  <- construct_path(data_path, dataset, "synapses")
 ```
 
-Now read in the chosen edgelist:
+Now read in the dataset-level edgelist and meta, then optionally subset:
 
 ```{r load_edgelist}
-# Read edgelist
-edgelist <- read_feather_smart(edgelist_path, gcs_filesystem = gcs_fs)
+# Full edgelist
+edgelist_full <- read_feather_smart(edgelist_path, gcs_filesystem = gcs_fs)
 
-# Display first few rows
+# Full meta
+meta_full <- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)
+
+if (!is.null(subset_name)) {
+  cat("Building subset in code:", subset_name, "\n")
+
+  # For synapse-based subsets we need synapses in the relevant neuropils.
+  # Use Parquet predicate pushdown for speed.
+  spec <- region_filter_spec(subset_name)
+  syns_for_subset <- NULL
+  if (spec$mode == "synapse") {
+    syn_pre_col  <- if (grepl("^banc", dataset)) "pre_root_id"  else "pre"
+    syn_post_col <- if (grepl("^banc", dataset)) "post_root_id" else "post"
+    if (use_gcs) {
+      # SQL doesn't support regex; pull all neuropils starting with the alternation prefixes
+      pattern <- spec$pattern
+      syns_for_subset <- query_parquet_gcs(
+        path = synapse_path,
+        gcs_filesystem = gcs_fs,
+        # Pull all rows once and filter in R; efficient because the synapse table
+        # is much smaller after we keep only the required columns.
+        filters = NULL,
+        columns = c(syn_pre_col, syn_post_col, "neuropil", "side")
+      ) %>%
+        rename(pre = all_of(syn_pre_col), post = all_of(syn_post_col)) %>%
+        filter(grepl(pattern, neuropil))
+    } else {
+      syns_for_subset <- open_dataset_lazy(synapse_path, format = "parquet") %>%
+        select(all_of(c(syn_pre_col, syn_post_col)), neuropil, side) %>%
+        rename(pre = all_of(syn_pre_col), post = all_of(syn_post_col)) %>%
+        filter(str_detect(neuropil, spec$pattern)) %>%
+        collect()
+    }
+  }
+
+  sub <- subset_by_region(meta_full, dataset, subset_name,
+                          edgelist = edgelist_full,
+                          synapses = syns_for_subset)
+  edgelist <- edgelist_full %>% filter(pre %in% sub$ids & post %in% sub$ids)
+  cat("Subset:", length(sub$ids), "neurons,",
+      nrow(edgelist), "connections\n")
+} else {
+  cat("Using full dataset\n")
+  edgelist <- edgelist_full
+}
+
 head(edgelist)
 ```
 
 And get our meta data, subsetted by neurons present in the edgelist (`pre` + `post`):
 
 ```{r load_meta}
-# Read full meta data
-meta_full <- read_feather_smart(meta_path, gcs_filesystem = gcs_fs)
-
 # Get unique neuron IDs from edgelist
 neuron_ids <- unique(c(edgelist$pre, edgelist$post))
 

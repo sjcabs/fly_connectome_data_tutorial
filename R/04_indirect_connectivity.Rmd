@@ -17,7 +17,7 @@ dataset <- "malecns_09"
 dataset_id <- "malecns_09_id"
 
 # Data location
-data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
+data_path <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data"
 
 # Detect if using GCS or local path
 use_gcs <- grepl("^gs://", data_path)
@@ -477,8 +477,8 @@ First let's read the BANC and maleCNS metadata, and select our pC1 neuron by doi
 
 ```{r load_datasets_for_pc1}
 # Data set 1: BANC (female)
-dataset1 <- "banc_746"
-dataset_id1 <- "banc_746_id"
+dataset1 <- "banc_888"
+dataset_id1 <- "banc_888_id"
 meta_path1 <- construct_path(data_path, dataset1, "meta")
 meta1 <- read_feather_gcs(meta_path1, use_gcs = use_gcs) %>%
   rename(root_id = !!sym(dataset_id1))
@@ -755,27 +755,41 @@ The [abdominal neuromere](https://www.virtualflybrain.org/term/adult-abdominal-n
 First, let's look at our abdominal subset, and read the edgelist we have there to get the inventory of neurons we want to look at. We just want intrinsic neurons of the VNC that are also in the abdominal ganglion, so let's remove any afferent or efferent neurons. This makes our source pool.
 
 ```{r define_abdominal_sources}
-# Read abdominal ganglion edgelist to get neuron IDs
-dataset <- "banc_746"
-dataset_id <- "banc_746_id"
+# Build the abdominal_neuromere subset in code (no per-region cut-out folder in
+# the new bucket). subset_by_region() reproduces the bancpipeline filter:
+# neuropil matches `^ANm|^ABDNM` and ≥100 synapses per neuron.
+dataset <- "banc_888"
+dataset_id <- "banc_888_id"
 subset_name <- "abdominal_neuromere"
-dataset_base <- sub("_[0-9]+$", "", dataset)
-subset_dir <- file.path(data_path, dataset_base, subset_name)
-abdominal_edgelist_path <- file.path(subset_dir, paste0(dataset, "_", subset_name, "_simple_edgelist.feather"))
 
-# Read meta
-meta_path <- construct_path(data_path, dataset, "meta")
+# Read full meta and synapses (predicate-pushdown by neuropil keeps the download small)
+meta_path    <- construct_path(data_path, dataset, "meta")
+synapse_path <- construct_path(data_path, dataset, "synapses")
 meta <- read_feather_gcs(meta_path, use_gcs = use_gcs)
 
-# Read the edgelist for this subset
-abdominal_edgelist <- read_feather_gcs(abdominal_edgelist_path, use_gcs = use_gcs)
+if (!exists("gcs_fs")) gcs_fs <- if (use_gcs) setup_gcs_filesystem() else NULL
+syn_pre_col  <- "pre_root_id"
+syn_post_col <- "post_root_id"
+if (use_gcs) {
+  abd_syns <- query_parquet_gcs(
+    path = synapse_path,
+    gcs_filesystem = gcs_fs,
+    filters = NULL,
+    columns = c(syn_pre_col, syn_post_col, "neuropil")
+  ) %>%
+    rename(pre = all_of(syn_pre_col), post = all_of(syn_post_col)) %>%
+    filter(grepl("^ANm|^ABDNM", neuropil))
+} else {
+  abd_syns <- open_dataset_lazy(synapse_path, format = "parquet") %>%
+    select(all_of(c(syn_pre_col, syn_post_col)), neuropil) %>%
+    rename(pre = all_of(syn_pre_col), post = all_of(syn_post_col)) %>%
+    filter(str_detect(neuropil, "^ANm|^ABDNM")) %>%
+    collect()
+}
 
-# Get unique neuron IDs from pre and post columns
-abdominal_ids <- unique(c(abdominal_edgelist$pre, abdominal_edgelist$post))
-
-# Get metadata for these neurons
-abdominal_neurons <- meta %>%
-  filter(!!sym(dataset_id) %in% abdominal_ids)
+abd_sub <- subset_by_region(meta, dataset, subset_name, synapses = abd_syns)
+abdominal_ids <- abd_sub$ids
+abdominal_neurons <- abd_sub$meta
 
 # Filter to intrinsic neurons (not afferent/efferent)
 abdominal_source_neurons <- abdominal_neurons %>%

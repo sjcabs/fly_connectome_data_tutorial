@@ -113,89 +113,296 @@ def setup_gcs(token='google_default'):
     return gcs
 
 
-def construct_path(data_root, dataset, file_type="meta", space_suffix=None, subset=None):
+# BANC bucket root (used for skeleton / mesh assets that live outside compiled_data/)
+BANC_BUCKET_ROOT = "gs://lee-lab_brain-and-nerve-cord-fly-connectome"
+
+
+def construct_path(data_root, dataset, file_type="meta", space_suffix=None):
     """
-    Construct file paths for dataset files.
+    Build a path to a connectome data file in the new bucket layout.
+
+    The new bucket is
+    ``gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/{dataset}_{version}/``.
 
     Parameters
     ----------
     data_root : str
-        Root data directory (can be gs:// or local path)
+        Root data directory (e.g.
+        ``"gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data"``) or a local
+        mirror.
     dataset : str
-        Dataset name with version (e.g., "banc_746")
+        Dataset name with version (e.g. ``"banc_888"``, ``"fafb_783"``).
     file_type : str
-        Type of file: "meta", "edgelist", "edgelist_simple", "synapses", "skeletons"
+        One of ``"meta"``, ``"synapses"``, ``"edgelist_simple"``, ``"edgelist_split"``,
+        ``"edgelist"`` (alias for ``"edgelist_simple"``), ``"metrics"``, ``"skeletons"``.
     space_suffix : str, optional
-        Space name for skeletons (defaults to native space)
-    subset : str, optional
-        Subset name (e.g., "mushroom_body", "antennal_lobe"). If None, uses top-level files.
+        Space name for skeletons (defaults to native space, e.g. ``"banc_space"``).
 
     Returns
     -------
     str
-        Full path to the file
+        Full path to the requested file or directory.
+
+    Notes
+    -----
+    BANC's compiled_data layout differs from the other datasets:
+    - Edgelists are named ``banc_888_edgelist_simple_v3.feather`` and
+      ``banc_888_edgelist_split.feather`` (not ``_simple_edgelist`` / ``_split_edgelist``).
+    - Synapses are ``banc_888_synapses_v2_enriched.parquet``.
+    - SWC skeletons live at
+      ``gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_skeletons/swcs-from-pcg-skel/``,
+      **not** inside ``compiled_data/banc_888/``.
 
     Examples
     --------
-    >>> path = construct_path("gs://bucket/data", "banc_746", "meta")
-    >>> # Returns: gs://bucket/data/banc/banc_746_meta.feather
+    >>> construct_path(
+    ...     "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data",
+    ...     "banc_888", "meta")
+    'gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_meta.feather'
 
-    >>> path = construct_path("gs://bucket/data", "banc_746", "synapses", subset="mushroom_body")
-    >>> # Returns: gs://bucket/data/banc/mushroom_body/banc_746_mushroom_body_synapses.feather
+    >>> construct_path(
+    ...     "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data",
+    ...     "banc_888", "skeletons")
+    'gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_skeletons/swcs-from-pcg-skel'
     """
     dataset_name = dataset.split("_")[0]
 
+    # Resolve aliases
+    if file_type == "edgelist":
+        file_type = "edgelist_simple"
+
+    # BANC SWC skeletons live at the bucket root, not inside compiled_data/
+    if file_type == "skeletons" and dataset_name == "banc":
+        return f"{BANC_BUCKET_ROOT}/neuron_skeletons/swcs-from-pcg-skel"
+
     extensions = {
         "meta": ".feather",
-        "edgelist": ".feather",
+        "metrics": ".feather",
+        "synapses": ".parquet",
         "edgelist_simple": ".feather",
-        "synapses": ".parquet" if subset is None else ".feather",  # Subsets use .feather
-        "skeletons": ""  # Directory
+        "edgelist_split": ".feather",
+        "skeletons": "",
     }
-
     if file_type not in extensions:
-        raise ValueError(f"Unknown file_type: {file_type}. Choose: {', '.join(extensions.keys())}")
-
+        raise ValueError(
+            f"Unknown file_type: {file_type}. "
+            f"Choose: {', '.join(extensions.keys())}"
+        )
     extension = extensions[file_type]
 
-    # Build subdirectory path
-    if subset is not None:
-        subdir = f"{dataset_name}/{subset}"
-
-        # For subset files, include subset name in filename
-        if file_type == "skeletons":
-            if space_suffix is None:
-                space_suffix = f"{dataset_name}_space"
-
-            if dataset_name == "banc":
-                filename = f"{dataset_name}_{subset}_{space_suffix}_l2_swc{extension}"
-            else:
-                filename = f"{dataset_name}_{subset}_{space_suffix}_swc{extension}"
-        elif file_type == "edgelist_simple":
-            filename = f"{dataset}_{subset}_simple_edgelist{extension}"
-        else:
-            filename = f"{dataset}_{subset}_{file_type}{extension}"
+    if file_type == "skeletons":
+        if space_suffix is None:
+            space_suffix = f"{dataset_name}_space"
+        filename = f"{dataset_name}_{space_suffix}_swc{extension}"
+    elif dataset_name == "banc":
+        # BANC uses different naming inside compiled_data/banc_888/
+        filename = {
+            "meta":            f"{dataset}_meta{extension}",
+            "metrics":         f"{dataset}_metrics{extension}",
+            "synapses":        f"{dataset}_synapses_v2_enriched{extension}",
+            "edgelist_simple": f"{dataset}_edgelist_simple_v3{extension}",
+            "edgelist_split":  f"{dataset}_edgelist_split{extension}",
+        }[file_type]
     else:
-        subdir = dataset_name
+        filename = {
+            "meta":            f"{dataset}_meta{extension}",
+            "metrics":         f"{dataset}_metrics{extension}",
+            "synapses":        f"{dataset}_synapses{extension}",
+            "edgelist_simple": f"{dataset}_simple_edgelist{extension}",
+            "edgelist_split":  f"{dataset}_split_edgelist{extension}",
+        }[file_type]
 
-        # Standard top-level file naming
-        if file_type == "skeletons":
-            if space_suffix is None:
-                space_suffix = f"{dataset_name}_space"
+    # New layout: compiled_data/{dataset}_{version}/{filename}
+    return f"{data_root}/{dataset}/{filename}"
 
-            # BANC uses l2 skeletons
-            if dataset_name == "banc":
-                filename = f"{dataset_name}_{space_suffix}_l2_swc{extension}"
-            else:
-                filename = f"{dataset_name}_{space_suffix}_swc{extension}"
-        elif file_type == "edgelist_simple":
-            # Note: "simple" comes before "edgelist" in filename
-            filename = f"{dataset}_simple_edgelist{extension}"
+
+def construct_obj_path(data_root, dataset, subdir="."):
+    """
+    Path to OBJ mesh directory for a dataset.
+
+    BANC's mesh assets are at ``gs://.../region_outlines/`` in Neuroglancer
+    precomputed format (not OBJ files), so this returns ``None`` for BANC.
+    Other datasets keep OBJ meshes under
+    ``compiled_data/{dataset}_{version}/obj/``.
+
+    Parameters
+    ----------
+    data_root : str
+        Root data directory.
+    dataset : str
+        Dataset name with version (e.g. ``"fafb_783"``).
+    subdir : str
+        ``"."`` for the top-level OBJ directory, or ``"neuropils"``.
+
+    Returns
+    -------
+    str or None
+        Path to the mesh directory, or None for BANC.
+    """
+    if dataset.split("_")[0] == "banc":
+        return None
+    base = f"{data_root}/{dataset}/obj"
+    if subdir in (".", None):
+        return base
+    return f"{base}/{subdir}"
+
+
+# -----------------------------------------------------------------------------
+# Region subsets — reproduces bancpipeline/banc/share/banc-sjcabs.R cut-out logic
+# -----------------------------------------------------------------------------
+
+REGION_SPECS = {
+    "mushroom_body": dict(
+        mode="metadata_with_kc_partners",
+        pattern="mushroom_body|kenyon_cell|APL|DPM|LHMB1|OA-VPM3",
+        side="right", min_synapses=100,
+    ),
+    "antennal_lobe": dict(
+        mode="metadata",
+        pattern="antennal_lobe|olfactory_receptor|thermosensory_receptor|hygrosensory_receptor|CSD",
+        side=None, min_synapses=None,
+    ),
+    "central_complex": dict(
+        mode="metadata",
+        pattern="central_complex",
+        side=None, min_synapses=None,
+    ),
+    "optic": dict(
+        mode="synapse",
+        pattern=r"^LO|^LOP|^AME|^ME",
+        side="right", min_synapses=100,
+    ),
+    "suboesophageal_zone": dict(
+        mode="synapse",
+        pattern=r"^FLA|^SEZ|^GNG|^SAD|^AMMC|^PRW",
+        side=None, min_synapses=100,
+    ),
+    "front_leg": dict(
+        mode="synapse",
+        pattern=r"^LegNp\(T1\)|T1|^ProNM-T1|^LNp_T1",
+        side="right", min_synapses=100,
+    ),
+    "abdominal_neuromere": dict(
+        mode="synapse",
+        pattern=r"^ANm|^ABDNM|^ADNM",
+        side=None, min_synapses=100,
+    ),
+}
+
+
+def region_filter_spec(region):
+    """Return the filter spec for a named region. See REGION_SPECS."""
+    if region not in REGION_SPECS:
+        raise ValueError(
+            f"Unknown region: {region}. Choose: {', '.join(REGION_SPECS)}"
+        )
+    return REGION_SPECS[region]
+
+
+def subset_by_region(meta, dataset, region, edgelist=None, synapses=None):
+    """
+    Reproduce a region cut-out in code.
+
+    Mirrors ``bancpipeline/banc/share/banc-sjcabs.R``. The pre-computed cut-out
+    folders that previously shipped with the bucket no longer exist; this helper
+    rebuilds them from the dataset-level meta / edgelist / synapse tables.
+
+    Parameters
+    ----------
+    meta : pandas.DataFrame
+        Full metadata table for the dataset.
+    dataset : str
+        Dataset name with version (e.g. ``"banc_888"``). Used to pick the ID
+        column name (``{dataset}_id``) and to know which synapse column names to
+        expect.
+    region : str
+        Region name; see :func:`region_filter_spec`.
+    edgelist : pandas.DataFrame, optional
+        Required for ``mushroom_body``: used to find KC partners (≥100 synapses).
+    synapses : pandas.DataFrame, optional
+        Required for synapse-mode regions (``optic``, ``suboesophageal_zone``,
+        ``front_leg``, ``abdominal_neuromere``). Must contain ``neuropil`` and
+        pre/post columns; for BANC these are ``pre_root_id``/``post_root_id``,
+        for other datasets ``pre``/``post``.
+
+    Returns
+    -------
+    dict
+        ``{"ids": list, "meta": pandas.DataFrame}``.
+    """
+    spec = region_filter_spec(region)
+    id_col = f"{dataset}_id"
+    if id_col not in meta.columns:
+        raise ValueError(f"meta does not contain ID column '{id_col}'")
+
+    def _meta_match(m, pattern, side=None):
+        cols = ["super_class", "cell_class", "cell_sub_class", "cell_type"]
+        mask = pd.Series(False, index=m.index)
+        for c in cols:
+            if c in m.columns:
+                mask |= m[c].astype(str).str.contains(pattern, regex=True, na=False)
+        m_filt = m[mask]
+        if side is not None and "side" in m_filt.columns:
+            m_filt = m_filt[m_filt["side"] == side]
+        return m_filt
+
+    if spec["mode"] == "metadata":
+        meta_subset = _meta_match(meta, spec["pattern"], spec["side"])
+
+    elif spec["mode"] == "metadata_with_kc_partners":
+        if edgelist is None:
+            raise ValueError(
+                "subset_by_region(region='mushroom_body') requires `edgelist`."
+            )
+        kc_meta = meta[meta["cell_class"] == "kenyon_cell"]
+        if spec["side"] is not None and "side" in kc_meta.columns:
+            kc_meta = kc_meta[kc_meta["side"] == spec["side"]]
+        kc_ids = set(kc_meta[id_col].astype(str).tolist())
+
+        if not kc_ids:
+            meta_subset = _meta_match(meta, spec["pattern"], spec["side"])
         else:
-            filename = f"{dataset}_{file_type}{extension}"
+            el = edgelist.copy()
+            el["pre"] = el["pre"].astype(str)
+            el["post"] = el["post"].astype(str)
+            mask = el["pre"].isin(kc_ids) | el["post"].isin(kc_ids)
+            el = el.loc[mask].copy()
+            el["pre"] = np.where(el["pre"].isin(kc_ids), "KC", el["pre"])
+            el["post"] = np.where(el["post"].isin(kc_ids), "KC", el["post"])
+            grouped = el.groupby(["pre", "post"], as_index=False)["count"].sum()
+            grouped = grouped[grouped["count"] >= spec["min_synapses"]]
+            partner_ids = (set(grouped["pre"].tolist()) | set(grouped["post"].tolist())) - kc_ids - {"KC"}
+            ids_str = meta[id_col].astype(str)
+            cols = ["super_class", "cell_class", "cell_sub_class", "cell_type"]
+            mask = pd.Series(False, index=meta.index)
+            for c in cols:
+                if c in meta.columns:
+                    mask |= meta[c].astype(str).str.contains(spec["pattern"], regex=True, na=False)
+            mask |= ids_str.isin(partner_ids)
+            if spec["side"] is not None and "side" in meta.columns:
+                mask &= (meta["side"] == spec["side"])
+            meta_subset = meta[mask]
 
-    full_path = f"{data_root}/{subdir}/{filename}"
-    return full_path
+    elif spec["mode"] == "synapse":
+        if synapses is None:
+            raise ValueError(
+                f"subset_by_region(region='{region}') requires `synapses`."
+            )
+        pre_col = "pre_root_id" if "pre_root_id" in synapses.columns else "pre"
+        post_col = "post_root_id" if "post_root_id" in synapses.columns else "post"
+        syns = synapses[synapses["neuropil"].astype(str).str.contains(spec["pattern"], regex=True, na=False)]
+        if spec["side"] is not None and "side" in syns.columns:
+            syns = syns[syns["side"] == spec["side"]]
+        pre_counts = syns[pre_col].value_counts()
+        post_counts = syns[post_col].value_counts()
+        chosen = set(pre_counts[pre_counts >= spec["min_synapses"]].index.tolist())
+        chosen |= set(post_counts[post_counts >= spec["min_synapses"]].index.tolist())
+        meta_subset = meta[meta[id_col].isin(chosen)]
+    else:
+        raise ValueError(f"Unknown spec mode: {spec['mode']}")
+
+    ids = meta_subset[id_col].dropna().unique().tolist()
+    return {"ids": ids, "meta": meta_subset}
 
 
 def read_feather_gcs(path, gcs_fs=None, cache_dir=".cache", use_cache=True):
@@ -742,7 +949,9 @@ __all__ = [
     'trimesh', 'read_obj_from_gcs',
 
     # Helper functions
-    'setup_gcs', 'construct_path',
+    'setup_gcs', 'construct_path', 'construct_obj_path',
+    'region_filter_spec', 'subset_by_region', 'REGION_SPECS',
+    'BANC_BUCKET_ROOT',
     'read_feather_gcs', 'read_parquet_gcs',
-    'save_figure', 'save_plot'
+    'save_figure', 'save_plot',
 ]

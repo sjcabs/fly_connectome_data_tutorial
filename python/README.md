@@ -108,10 +108,10 @@ import pandas as pd
 import numpy as np
 
 # Load metadata
-meta = pd.read_feather("banc_746_meta.feather")
+meta = pd.read_feather("banc_888_meta.feather")
 
-# Load edgelist
-edgelist = pd.read_feather("banc_746_simple_edgelist.feather")
+# Load edgelist (BANC names this `_edgelist_simple_v3` — other datasets use `_simple_edgelist`)
+edgelist = pd.read_feather("banc_888_edgelist_simple_v3.feather")
 
 # Join with metadata to get cell type annotations
 edgelist_annotated = edgelist.merge(
@@ -508,7 +508,7 @@ fig = navis.plot3d(
 - ✅ MANC (manc_121): Has compartment labels
 - ✅ maleCNS (malecns_09): Has compartment labels
 - ✅ Hemibrain (hemibrain_121): Has compartment labels
-- ❌ BANC (banc_746): No compartment labels yet
+- ❌ BANC (banc_888): No compartment labels yet
 
 ### Helper Functions
 

@@ -13,13 +13,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 6)
 
 # Dataset selection - change this to work with different datasets
-# Options: "banc_746", "fafb_783", "manc_121", "hemibrain_121", "malecns_09"
-dataset <- "banc_746"
-dataset_id <- "banc_746_id"
+# Options: "banc_888", "fafb_783", "manc_121", "hemibrain_121", "malecns_09"
+dataset <- "banc_888"
+dataset_id <- "banc_888_id"
 
 # Data location - can be GCS bucket or local path
 # Option 1 (GCS - default): Access data directly from Google Cloud Storage
-data_path <- "gs://brain-and-nerve-cord_exports/processed_data"
+data_path <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data"
 
 # Option 2 (Local): Use local copy if you've downloaded the data with gsutil
 # data_path <- "/path/to/local/sjcabs_data"
@@ -118,21 +118,21 @@ Access data directly from Google Cloud Storage - no manual download required!
 - **Pros:** No local storage needed, always up-to-date
 - **Cons:** Slower (3-5 min for large files), requires authentication & internet
 
-**GCS bucket location:** `gs://brain-and-nerve-cord_exports/processed_data/`
+**GCS bucket location:** `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/`
 
 ### Option 2: Local Access (Faster for Repeated Use)
 Download data once with `gsutil`, then access locally:
 
 ```bash
-# Download specific dataset (e.g., BANC metadata + synapses)
-gsutil -m cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_meta.feather ~/data/sjcabs_data/banc/
-gsutil -m cp gs://brain-and-nerve-cord_exports/processed_data/banc/banc_746_synapses.parquet ~/data/sjcabs_data/banc/
+# Download specific dataset files (e.g., BANC metadata + synapses)
+gsutil -m cp gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_meta.feather ~/data/sjcabs_data/banc_888/
+gsutil -m cp gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_synapses_v2_enriched.parquet ~/data/sjcabs_data/banc_888/
 
-# Or download entire dataset directory
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data/banc ~/data/sjcabs_data/
+# Or download an entire dataset directory
+gsutil -m cp -r gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888 ~/data/sjcabs_data/
 
 # Or download all datasets (~500 GB total)
-gsutil -m cp -r gs://brain-and-nerve-cord_exports/processed_data ~/data/
+gsutil -m cp -r gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data ~/data/
 ```
 
 Then update the setup chunk:
@@ -148,12 +148,17 @@ data_path <- "~/data/sjcabs_data"  # Use your local path
 ### Available Datasets
 
 ```bash
-gs://brain-and-nerve-cord_exports/processed_data/banc/
-gs://brain-and-nerve-cord_exports/processed_data/fafb/
-gs://brain-and-nerve-cord_exports/processed_data/manc/
-gs://brain-and-nerve-cord_exports/processed_data/hemibrain/
-gs://brain-and-nerve-cord_exports/processed_data/malecns/
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/fafb_783/
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121/
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/hemibrain_121/
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/malecns_09/
 ```
+
+The dataset folder name now includes the version (e.g. `banc_888`, not `banc`),
+and the per-region "cut-out" folders that previously sat alongside the data files
+(`mushroom_body/`, `antennal_lobe/`, etc.) have been removed. The tutorial
+reproduces those subsets in code via the `subset_by_region()` helper.
 
 # Core tutorial
 
@@ -216,7 +221,7 @@ Let's get our list of "proofread" identified neurons, as they are what we will w
 
 ```{r proofread}
 # Use the metadata we already loaded
-# Dataset ID - change this ID for different datasets, e.g. the BANC data is: banc_746_id
+# Dataset ID - change this ID for different datasets, e.g. the BANC data is: banc_888_id
 proofread_ids <- na.omit(unique(meta_full[[dataset_id]]))
 
 # Show column names
@@ -308,13 +313,18 @@ head(kenyon_cells)
 
 ## Working with Synapse Data
 
-Synapse files can be very large (4-15 GB for full datasets). For this tutorial, we'll use **pre-filtered subsets** focusing on specific brain regions, which are much faster to load.
+Synapse files can be very large (4-15 GB for full datasets). Earlier versions of this
+tutorial shipped **pre-filtered Feather files** for common regions (one feather per
+dataset/region pair). Those subset folders **no longer exist** — the new bucket only
+stores the full Parquet synapse table for each dataset (e.g.
+`compiled_data/banc_888/banc_888_synapses_v2_enriched.parquet`).
 
-**For workshop use:** We provide pre-filtered synapse data in Feather format for common regions like the mushroom body. This avoids the 10-20 minute wait for downloading and filtering large Parquet files.
+We rebuild the same subset in code by querying the Parquet file with a server-side
+filter on `neuropil`. Parquet predicate pushdown means only rows matching the filter
+are downloaded from GCS, which keeps this fast (typically under a minute for a
+specific neuropil) and avoids loading the multi-GB full table.
 
-**For advanced use:** If you need to query the full synapse dataset or filter by custom criteria, see the commented code at the end of this section for Parquet querying approaches.
-
-### Loading Pre-filtered Mushroom Body Synapses
+### Loading Mushroom Body Calyx Synapses (Parquet predicate pushdown)
 
 Our synapses have been roughly mapped to "neuropils", which are human-determined regions of the nervous system. These determinations are based on lumps and grooves on the surface of neural tissue and boundaries in synapse densities, but they roughly correlate with functional circuits. At least in some cases.
 
@@ -340,60 +350,42 @@ Let's extract MB calyx synapses using [regex](https://stringr.tidyverse.org/arti
 
 For more details on mushroom body organization and function, see [Li et al. 2020](https://pubmed.ncbi.nlm.nih.gov/33315010/) and [Aso et al. 2014](https://pubmed.ncbi.nlm.nih.gov/25535793/).
 
-We provide a pre-filtered feather file at: `banc/mushroom_body/banc_746_mushroom_body_synapses.feather`
+The BANC synapse Parquet (`banc_888_synapses_v2_enriched.parquet`) uses the
+column names `pre_root_id` / `post_root_id` and stores `neuropil`, `region`,
+and `side`. We pull only the rows whose `neuropil` starts with `MB_CA` (mushroom
+body calyx).
 
 ```{r mb_synapses}
-# Load pre-filtered mushroom body synapses from feather file
-# This is MUCH faster than querying the full 4-15 GB Parquet file!
-dataset_base <- sub("_[0-9]+$", "", dataset)
-mb_synapses_path <- file.path(data_path, dataset_base, "mushroom_body", paste0(dataset, "_mushroom_body_synapses.feather"))
-mb_synapses <- read_feather_smart(mb_synapses_path, gcs_filesystem = gcs_fs)
+# Path to the full BANC synapse Parquet (no per-region cut-out file in the new bucket)
+synapse_path <- construct_path(data_path, dataset, "synapses")
 
-# Filter for right side and proofread neurons
+# BANC synapse columns: pre_root_id / post_root_id (other datasets use pre / post)
+syn_pre_col  <- if (grepl("^banc", dataset)) "pre_root_id"  else "pre"
+syn_post_col <- if (grepl("^banc", dataset)) "post_root_id" else "post"
+
+if (use_gcs) {
+  # GCS path: server-side filter via DuckDB / pyarrow predicate pushdown
+  mb_synapses <- query_parquet_gcs(
+    path = synapse_path,
+    gcs_filesystem = gcs_fs,
+    filters = "neuropil LIKE 'MB_CA%' AND side = 'right'",
+    columns = c("id", syn_pre_col, syn_post_col, "neuropil", "side")
+  )
+} else {
+  # Local path: Arrow lazy filtering
+  mb_synapses <- open_dataset_lazy(synapse_path, format = "parquet") %>%
+    filter(str_detect(neuropil, "^MB_CA"), side == "right") %>%
+    select(id, all_of(c(syn_pre_col, syn_post_col)), neuropil, side) %>%
+    collect()
+}
+
+# Normalise column names so downstream code can use `pre` / `post`
 mb_synapses <- mb_synapses %>%
-  filter(side == "right",
-         pre %in% proofread_ids | post %in% proofread_ids)
+  rename(pre = all_of(syn_pre_col), post = all_of(syn_post_col)) %>%
+  filter(pre %in% proofread_ids | post %in% proofread_ids)
+
 cat("Unique presynaptic neurons/fragments:", n_distinct(mb_synapses$pre), "\n")
 cat("Unique postsynaptic neurons/fragments:", n_distinct(mb_synapses$post), "\n")
-```
-
-### Alternative: Querying the Full Parquet File (Advanced)
-
-For reference, here's how you would query the full synapse Parquet file if needed. **This is commented out because it takes 10-20 minutes** to download and filter the multi-GB file:
-
-```{r parquet_query, eval=FALSE}
-# NOTE: This code is for reference only - it takes 10-20 minutes to run!
-#
-# synapse_path <- construct_path(data_path, dataset, "synapses")  # Full Parquet file
-#
-# if (use_gcs) {
-#   # GCS APPROACH: Server-side filtering with DuckDB
-#   # DuckDB reads directly from GCS with predicate pushdown
-#   cat("\nQuerying GCS Parquet with DuckDB server-side filtering...\n")
-#
-#   # Query with server-side filtering (using custom query_parquet_gcs() function)
-#   mb_synapses <- query_parquet_gcs(
-#     path = synapse_path,
-#     gcs_filesystem = gcs_fs,
-#     filters = "neuropil LIKE 'MB_CA%' AND side = 'right'",  # SQL WHERE clause
-#     columns = c("id", "pre", "post", "neuropil", "side")
-#   )
-#
-# } else {
-#   # LOCAL APPROACH: Arrow lazy evaluation
-#   cat("\nQuerying local Parquet with lazy evaluation...\n")
-#
-#   # Open dataset lazily
-#   synapses_ds <- open_dataset_lazy(synapse_path, format = "parquet")
-#
-#   # Define and execute query
-#   mb_synapses <- synapses_ds %>%
-#     filter(str_detect(neuropil, "^MB_CA"),
-#            side == "right",
-#            pre %in% proofread_ids | post %in% proofread_ids) %>%
-#     select(id, pre, post, neuropil, side) %>%
-#     collect()
-# }
 ```
 
 ### Identify Mushroom Body Calyx Neurons
@@ -425,7 +417,7 @@ mb_neurons <- unique(c(mb_outputs$pre, mb_inputs$post))
 cat("Neurons with ≥100 synapses in MB:", length(mb_neurons), "\n")
 
 # Check how many are Kenyon cells
-# Use full dataset name with version for ID column (e.g., "banc_746_id")
+# Use full dataset name with version for ID column (e.g., "banc_888_id")
 mb_meta <- meta %>%
   filter(get(paste0(dataset, "_id")) %in% mb_neurons)
 
@@ -584,7 +576,7 @@ Now try this analysis yourself with a different dataset!
 ### Biological vs Technical Differences
 
 Consider:
-- **BANC** = female fly, FlyWire reconstruction methods
+- **BANC** = female fly, BANC project (CAVE materialization 626 → export 888)
 - **maleCNS** = male fly, Janelia reconstruction methods
 - **Sex differences**: Male flies may have different neuron numbers in some circuits
 - **Reconstruction quality**: Different methods may capture different neuron populations

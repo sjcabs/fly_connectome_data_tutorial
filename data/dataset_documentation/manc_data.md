@@ -6,20 +6,25 @@
 
 **Publications:** Takemura et al. (2024) eLife; Marin et al. (2024) eLife; Cheong et al. (2024) eLife | **Version:** v1.2.1
 **Scale:** 23,650 neurons | ~31 million synapses | ~5.3 million connections
-**Location:** `gs://brain-and-nerve-cord_exports/processed_data/manc/`
+**Location:** `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121/`
 
 ## File Structure
 
 ```
-manc/
-├── manc_121_meta.feather                    # 1.4 MB - Neuron metadata
-├── manc_121_simple_edgelist.feather         # 83 MB - Neuron connectivity
-├── manc_121_split_edgelist.feather          # 321 MB - Compartment connectivity
-├── manc_121_synapses.feather                # 3.6 GB - Individual synapses
-├── manc_banc_space_split_swc/               # Skeletons in BANC space (split by compartment)
-├── manc_manc_space_swc/                     # Skeletons in native MANC space
-└── obj/                                     # Mesh objects
+compiled_data/manc_121/
+├── manc_121_meta.feather                   # ~1.4 MB - Neuron metadata
+├── manc_121_simple_edgelist.feather        # ~83 MB  - Neuron connectivity
+├── manc_121_split_edgelist.feather         # ~321 MB - Compartment connectivity
+├── manc_121_synapses.feather               # ~3.6 GB - Individual synapses (Feather)
+├── manc_121_synapses.parquet               # ~2.4 GB - Same synapses as Parquet (preferred)
+├── manc_manc_space_swc/                    # Skeletons in native MANC space
+├── manc_banc_space_split_swc/              # Skeletons in BANC space (split by compartment)
+└── obj/                                    # MANC volume + neuropil OBJ meshes
+    └── neuropils/
 ```
+
+> **Note on subsets.** Pre-computed cut-out folders no longer exist — build them in code
+> via `subset_by_region()`. Logic mirrors `bancpipeline/banc/share/banc-sjcabs.R`.
 
 ---
 
@@ -155,20 +160,22 @@ manc/
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_meta.feather")
-edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_split_edgelist.feather")
-synapses = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_synapses.feather")
+base = "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121"
+meta           = pd.read_feather(f"{base}/manc_121_meta.feather")
+edgelist       = pd.read_feather(f"{base}/manc_121_simple_edgelist.feather")
+split_edgelist = pd.read_feather(f"{base}/manc_121_split_edgelist.feather")
+synapses       = pd.read_parquet(f"{base}/manc_121_synapses.parquet")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_meta.feather")
-edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_split_edgelist.feather")
-synapses <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/manc/manc_121_synapses.feather")
+base <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121"
+meta           <- read_feather(file.path(base, "manc_121_meta.feather"))
+edgelist       <- read_feather(file.path(base, "manc_121_simple_edgelist.feather"))
+split_edgelist <- read_feather(file.path(base, "manc_121_split_edgelist.feather"))
+synapses       <- read_parquet(file.path(base, "manc_121_synapses.parquet"))
 ```
 
 ---

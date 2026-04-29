@@ -6,29 +6,25 @@
 
 **Publication:** Berg et al. (2025) bioRxiv | **Version:** v0.9
 **Scale:** 165,114 neurons | ~301 million synapses | 11,691 cell types
-**Location:** `gs://brain-and-nerve-cord_exports/processed_data/malecns/`
+**Location:** `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/malecns_09/`
 
 ## File Structure
 
 ```
-malecns/
-├── malecns_09_meta.feather                    # 12 MB - Neuron metadata
-├── malecns_09_simple_edgelist.feather         # 1.5 GB - Neuron connectivity
-├── malecns_09_split_edgelist.feather          # 2.2 GB - Compartment connectivity
-├── malecns_09_synapses.parquet                # 7.0 GB - Individual synapses
-├── malecns_banc_space_swc/                    # Skeletons in BANC space
+compiled_data/malecns_09/
+├── malecns_09_meta.feather                    # ~9.7 MB - Neuron metadata
+├── malecns_09_simple_edgelist.feather         # ~3.2 GB - Neuron connectivity
+├── malecns_09_split_edgelist.feather          # ~4.6 GB - Compartment connectivity
+├── malecns_09_synapses.parquet                # ~7.9 GB - Individual synapses
 ├── malecns_malecns_space_swc/                 # Skeletons in native maleCNS space
-├── obj/                                       # Mesh objects
-└── [Curated Subsets:]
-    ├── abdominal_neuromere/                   # Abdominal control circuits
-    ├── antennal_lobe/                         # Olfactory circuits
-    ├── central_complex/                       # Navigation circuits
-    ├── front_leg/                             # Front leg motor control
-    ├── mushroom_body/                         # Associative memory circuits
-    ├── optic/                                 # Visual processing circuits
-    ├── optic_lobe_hex_08/                     # Optic lobe hexagonal grid subset
-    └── suboesophageal_zone/                   # Feeding and tactile circuits
+├── malecns_banc_space_swc/                    # Skeletons in BANC space
+├── obj/                                       # maleCNS volume + neuropil OBJ meshes
+│   └── neuropils/
+└── JRC2018U/                                  # JRC2018-Unisex registration assets
 ```
+
+> **Note on subsets.** Pre-computed cut-out folders (including `optic_lobe_hex_*`) no
+> longer exist — build them in code via `subset_by_region()`.
 
 ---
 
@@ -162,22 +158,21 @@ malecns/
 
 ---
 
-## Curated Subsets
+## Region Subsets (build in code)
 
-Each subset directory contains filtered metadata, edgelists, and synapse data for specific circuits:
+| Subset | Filter |
+|--------|--------|
+| **abdominal_neuromere** | `neuropil` matches `^ANm\|^ABDNM\|^ADNM`, ≥100 synapses |
+| **antennal_lobe** | Regex `antennal_lobe\|olfactory_receptor\|thermosensory_receptor\|hygrosensory_receptor\|CSD` against metadata |
+| **central_complex** | Regex `central_complex` against metadata |
+| **front_leg** | `neuropil` matches `^LegNp\(T1\)\|T1\|^ProNM-T1\|^LNp_T1`, `side == "right"`, ≥100 synapses |
+| **mushroom_body** | Regex `mushroom_body\|kenyon_cell\|APL\|DPM\|LHMB1\|OA-VPM3` + KC partners ≥100 syn, `side == "right"` |
+| **optic** | `neuropil` matches `^LO\|^LOP\|^AME\|^ME`, `side == "right"`, ≥100 synapses |
+| **optic_lobe_hex_08** | `optic_lobe_hex_1 == "8" & optic_lobe_hex_2 == "8"` + downstream partners (count > 5) |
+| **suboesophageal_zone** | `neuropil` matches `^FLA\|^SEZ\|^GNG\|^SAD\|^AMMC\|^PRW`, ≥100 synapses |
 
-| Subset | Focus | Key Circuits |
-|--------|-------|--------------|
-| **abdominal_neuromere** | Abdominal control | Motor neurons, sensory neurons, premotor circuits |
-| **antennal_lobe** | Olfaction | ORNs, PNs, local neurons |
-| **central_complex** | Navigation | Ring neurons, columnar neurons, heading circuits |
-| **front_leg** | Leg control | Motor neurons, sensory feedback, CPGs |
-| **mushroom_body** | Memory | Kenyon cells, MBONs, DANs |
-| **optic** | Vision | Lobula, medulla, wide-field neurons |
-| **optic_lobe_hex_08** | Optic lobe grid | Hexagonal grid position 08 neurons |
-| **suboesophageal_zone** | Feeding/tactile | Gustatory, mechanosensory, motor circuits |
-
-**Usage:** Ideal for focused analyses without loading the full connectome.
+Reproduced in code via `subset_by_region()`. The synapse-based filters use Parquet
+predicate pushdown so only matching rows are downloaded.
 
 ---
 
@@ -196,20 +191,22 @@ Each subset directory contains filtered metadata, edgelists, and synapse data fo
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_meta.feather")
-edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_split_edgelist.feather")
-synapses = pd.read_parquet("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_synapses.parquet")
+base = "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/malecns_09"
+meta           = pd.read_feather(f"{base}/malecns_09_meta.feather")
+edgelist       = pd.read_feather(f"{base}/malecns_09_simple_edgelist.feather")
+split_edgelist = pd.read_feather(f"{base}/malecns_09_split_edgelist.feather")
+synapses       = pd.read_parquet(f"{base}/malecns_09_synapses.parquet")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_meta.feather")
-edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_split_edgelist.feather")
-synapses <- read_parquet("gs://brain-and-nerve-cord_exports/processed_data/malecns/malecns_09_synapses.parquet")
+base <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/malecns_09"
+meta           <- read_feather(file.path(base, "malecns_09_meta.feather"))
+edgelist       <- read_feather(file.path(base, "malecns_09_simple_edgelist.feather"))
+split_edgelist <- read_feather(file.path(base, "malecns_09_split_edgelist.feather"))
+synapses       <- read_parquet(file.path(base, "malecns_09_synapses.parquet"))
 ```
 
 ---

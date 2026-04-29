@@ -5,30 +5,31 @@
 **FAFB (Full Adult Fly Brain)** via FlyWire - Complete adult female fly brain connectome at synapse resolution.
 
 **Publication:** Dorkenwald et al. (2024) Nature; Schlegel et al. (2024) Nature | **Version:** 783 (published)
-**Scale:** 139,213 neurons | ~69 million synapses | ~15 million connections
-**Location:** `gs://brain-and-nerve-cord_exports/processed_data/fafb/`
+**Scale:** ~140,000 neurons | ~69 million synapses | ~15 million connections
+**Location:** `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/fafb_783/`
 
 ## File Structure
 
 ```
-fafb/
-├── fafb_783_meta.feather                    # 8.8 MB - Neuron metadata
-├── fafb_783_simple_edgelist.feather         # 289 MB - Neuron connectivity
-├── fafb_783_split_edgelist.feather          # 523 MB - Compartment connectivity
-├── fafb_783_synapses.feather                # 4.0 GB - Individual synapses
-├── fafb_783_synapses.parquet                # 1.7 GB - Synapses (compressed)
-├── fafb_783_cell_dcv_detection.feather      # 9.7 GB - Cellular DCV detections
-├── fafb_783_soma_dcv_detection.feather      # 3.7 GB - Somatic DCV detections
-├── fafb_banc_space_swc/                     # Skeletons in BANC space
+compiled_data/fafb_783/
+├── fafb_783_meta.feather                    # ~10 MB  - Neuron metadata (140,177 rows × 21 cols)
+├── fafb_783_simple_edgelist.feather         # ~289 MB - Neuron connectivity
+├── fafb_783_split_edgelist.feather          # ~523 MB - Compartment connectivity
+├── fafb_783_synapses.feather                # ~4.0 GB - Individual synapses (Feather)
+├── fafb_783_synapses.parquet                # ~1.7 GB - Same synapses as Parquet (preferred)
+├── fafb_783_cell_dcv_detection.feather      # ~9.7 GB - Cellular DCV detections
+├── fafb_783_soma_dcv_detection.feather      # ~3.7 GB - Somatic DCV detections
+├── fafb_dcv_scores_metadata_ya_3_5_26.csv   # ~15 MB  - DCV detection metadata
 ├── fafb_fafb_space_swc/                     # Skeletons in native FAFB space
-├── obj/                                     # Additional mesh objects
-└── [Curated Subsets:]
-    ├── antennal_lobe/                       # Olfactory circuits
-    ├── central_complex/                     # Navigation circuits
-    ├── mushroom_body/                       # Associative memory circuits
-    ├── optic/                               # Visual processing circuits
-    └── suboesophageal_zone/                 # Feeding and tactile circuits
+├── fafb_banc_space_swc/                     # Skeletons in BANC space
+└── obj/                                     # FAFB volume + per-neuropil OBJ meshes
+    └── neuropils/
 ```
+
+> **Note on subsets.** The previous release shipped per-region cut-out folders inside this
+> dataset directory. They no longer exist — build them in code via `subset_by_region()`,
+> mirroring the original logic from
+> [`bancpipeline/banc/share/banc-sjcabs.R`](https://github.com/flyconnectome/bancpipeline).
 
 ---
 
@@ -37,7 +38,7 @@ fafb/
 ### `fafb_783_meta.feather`
 
 **Content:** Neuron metadata and annotations
-**Dimensions:** 139,213 rows × 17 columns
+**Dimensions:** 140,177 rows × 21 columns
 **Each row:** One neuron
 
 #### Key Columns
@@ -61,6 +62,9 @@ fafb/
 | `body_part_sensory` | Sensory target |
 | `body_part_effector` | Motor target |
 | `status` | Quality flag |
+| `sexually_dimorphic` | Sexual dimorphism annotation |
+| `soma_dcv_density` | Per-neuron somatic DCV density (from `fafb_783_soma_dcv_detection.feather`) |
+| `cell_dcv_density_um`, `cell_dcv_density_um3` | Per-neuron whole-cell DCV densities (per cable µm and per µm³) |
 
 **Notes:**
 - Harmonized to BANC schema for cross-dataset comparisons
@@ -200,15 +204,21 @@ fafb/
 
 ---
 
-## Curated Subsets
+## Region Subsets (build in code)
 
-| Subset | Focus | Circuits |
-|--------|-------|----------|
-| **antennal_lobe** | Olfaction | ORNs, PNs, local neurons |
-| **central_complex** | Navigation | Ring, columnar neurons |
-| **mushroom_body** | Memory | Kenyon cells, MBONs, DANs |
-| **optic** | Vision | Lobula, medulla, motion |
-| **suboesophageal_zone** | Feeding/tactile | Gustatory, motor |
+The pre-computed cut-out folders no longer exist. The `subset_by_region()` helper in
+`R/setup/functions.R` and `python/utils.py` reproduces them:
+
+| Subset | Filter |
+|--------|--------|
+| **antennal_lobe** | Regex `antennal_lobe\|olfactory_receptor\|thermosensory_receptor\|hygrosensory_receptor\|CSD` against metadata |
+| **central_complex** | Regex `central_complex` against metadata |
+| **mushroom_body** | Regex `mushroom_body\|kenyon_cell\|APL\|DPM\|LHMB1\|OA-VPM3` + KC partners ≥100 syn, `side == "right"` |
+| **optic** | `neuropil` matches `^LO\|^LOP\|^AME\|^ME`, `side == "right"`, ≥100 synapses |
+| **suboesophageal_zone** | `neuropil` matches `^FLA\|^SEZ\|^GNG\|^SAD\|^AMMC\|^PRW`, ≥100 synapses |
+
+Logic mirrors `bancpipeline/banc/share/banc-sjcabs.R`. Synapse-based subsets use Parquet
+predicate pushdown so only matching rows are downloaded.
 
 ---
 
@@ -229,28 +239,30 @@ fafb/
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_meta.feather")
-edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_split_edgelist.feather")
-synapses = pd.read_parquet("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_synapses.parquet")
+base = "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/fafb_783"
+meta            = pd.read_feather(f"{base}/fafb_783_meta.feather")
+edgelist        = pd.read_feather(f"{base}/fafb_783_simple_edgelist.feather")
+split_edgelist  = pd.read_feather(f"{base}/fafb_783_split_edgelist.feather")
+synapses        = pd.read_parquet(f"{base}/fafb_783_synapses.parquet")
 
 # Dense core vesicle detections
-dcv_cell = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_cell_dcv_detection.feather")
-dcv_soma = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_soma_dcv_detection.feather")
+dcv_cell = pd.read_feather(f"{base}/fafb_783_cell_dcv_detection.feather")
+dcv_soma = pd.read_feather(f"{base}/fafb_783_soma_dcv_detection.feather")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_meta.feather")
-edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_split_edgelist.feather")
-synapses <- read_parquet("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_synapses.parquet")
+base <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/fafb_783"
+meta           <- read_feather(file.path(base, "fafb_783_meta.feather"))
+edgelist       <- read_feather(file.path(base, "fafb_783_simple_edgelist.feather"))
+split_edgelist <- read_feather(file.path(base, "fafb_783_split_edgelist.feather"))
+synapses       <- read_parquet(file.path(base, "fafb_783_synapses.parquet"))
 
 # Dense core vesicle detections
-dcv_cell <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_cell_dcv_detection.feather")
-dcv_soma <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/fafb/fafb_783_soma_dcv_detection.feather")
+dcv_cell <- read_feather(file.path(base, "fafb_783_cell_dcv_detection.feather"))
+dcv_soma <- read_feather(file.path(base, "fafb_783_soma_dcv_detection.feather"))
 ```
 
 ---

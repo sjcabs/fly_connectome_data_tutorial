@@ -358,78 +358,306 @@ read_feather_smart <- function(path, gcs_filesystem = NULL, show_progress = TRUE
   }
 }
 
+#' BANC bucket root (used for skeleton / mesh assets that live outside compiled_data/)
+BANC_BUCKET_ROOT <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome"
+
 #' Construct Dataset Paths
 #'
-#' Helper function to construct file paths for metadata and data files.
-#' Note: Skeleton files do not include version numbers in their filenames.
+#' Build a full path to a connectome data file in the new bucket layout
+#' (`gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/{dataset}_{version}/`).
 #'
-#' @param data_root Root data directory (can be gs:// or local path)
-#' @param dataset Dataset name with version (e.g., "banc_746")
-#' @param file_type Type of file: "meta", "synapses", "edgelist", "edgelist_simple", or "skeletons"
-#' @param space_suffix Optional space name for skeletons (defaults to native space, e.g., "banc_space")
+#' @param data_root Root data directory (e.g.
+#'   `"gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data"`) or a local mirror.
+#' @param dataset Dataset name with version (e.g., "banc_888", "fafb_783").
+#' @param file_type One of: "meta", "synapses", "edgelist_simple", "edgelist_split",
+#'   "edgelist" (alias for "edgelist_simple"), "metrics", or "skeletons".
+#' @param space_suffix Optional space name for skeletons (defaults to native space,
+#'   e.g. "banc_space").
 #'
-#' @return Full path to the requested file
+#' @return Full path (string) to the requested file or directory.
 #'
 #' @details
-#' For skeleton files, the naming pattern is: {dataset}_{space}_[l2_]swc (directory)
-#' - BANC uses l2 skeletons: banc_banc_space_l2_swc/
-#' - Other datasets: fafb_fafb_space_swc/
+#' BANC's compiled_data layout differs from the other datasets:
+#' - Edgelists are named `banc_888_edgelist_simple_v3.feather` and
+#'   `banc_888_edgelist_split.feather` (not `_simple_edgelist`/`_split_edgelist`).
+#' - Synapses are `banc_888_synapses_v2_enriched.parquet`.
+#' - SWC skeletons live at `gs://lee-lab_brain-and-nerve-cord-fly-connectome/
+#'   neuron_skeletons/swcs-from-pcg-skel/`, **not** inside `compiled_data/banc_888/`.
+#' - Region/neuropil OBJ meshes are not under `compiled_data/banc_888/obj/`.
+#'
+#' FAFB / MANC / Hemibrain / maleCNS keep `_simple_edgelist`, `_split_edgelist`,
+#' `_synapses` naming and `*_swc/` + `obj/` subfolders inside their dataset folder.
 #'
 #' @examples
 #' \dontrun{
-#' meta_path <- construct_path("gs://bucket/data", "banc_746", "meta")
-#' # Returns: gs://bucket/data/banc/banc_746_meta.feather
+#' meta_path <- construct_path(
+#'   "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data",
+#'   "banc_888", "meta")
+#' # gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_meta.feather
 #'
-#' skeleton_path <- construct_path("gs://bucket/data", "banc_746", "skeletons")
-#' # Returns: gs://bucket/data/banc/banc_banc_space_l2_swc (directory)
+#' skel_path <- construct_path(
+#'   "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data",
+#'   "banc_888", "skeletons")
+#' # gs://lee-lab_brain-and-nerve-cord-fly-connectome/neuron_skeletons/swcs-from-pcg-skel
 #' }
 #'
 #' @export
 construct_path <- function(data_root, dataset, file_type = "meta", space_suffix = NULL) {
-  # Extract dataset name (e.g., "banc" from "banc_746")
   dataset_name <- strsplit(dataset, "_")[[1]][1]
 
-  # Determine file extension based on type
-  # Note: skeletons are now directories, not .zip files
-  extension <- switch(file_type,
-    "meta" = ".feather",
-    "synapses" = ".parquet",
-    "edgelist" = ".feather",
-    "edgelist_simple" = ".feather",
-    "skeletons" = "",  # No extension - it's a directory
-    stop("Unknown file_type. Choose: meta, synapses, edgelist, edgelist_simple, or skeletons")
-  )
+  # Resolve aliases
+  if (file_type == "edgelist") file_type <- "edgelist_simple"
 
-  # Construct filename
-  if (file_type == "skeletons") {
-    # Skeleton files don't include version number and have specific naming
-    # Pattern: {dataset_name}_{space_name}_[l2_]swc.zip
-    # e.g., banc_banc_space_l2_swc.zip, fafb_fafb_space_swc.zip
-
-    # Default space is the native space for the dataset
-    if (is.null(space_suffix)) {
-      space_suffix <- paste0(dataset_name, "_space")
-    }
-
-    # BANC uses l2 skeletons, others don't
-    if (dataset_name == "banc") {
-      filename <- paste0(dataset_name, "_", space_suffix, "_l2_swc", extension)
-    } else {
-      filename <- paste0(dataset_name, "_", space_suffix, "_swc", extension)
-    }
-  } else if (file_type == "edgelist_simple") {
-    # edgelist_simple files have "simple" before "edgelist" in the filename
-    # e.g., banc_746_simple_edgelist.feather (not banc_746_edgelist_simple.feather)
-    filename <- paste0(dataset, "_simple_edgelist", extension)
-  } else {
-    # Other file types include the full dataset name with version
-    filename <- paste0(dataset, "_", file_type, extension)
+  # BANC SWC skeletons live at the bucket root, not inside compiled_data/
+  if (file_type == "skeletons" && dataset_name == "banc") {
+    return(file.path(BANC_BUCKET_ROOT, "neuron_skeletons", "swcs-from-pcg-skel"))
   }
 
-  # Combine into full path
-  full_path <- file.path(data_root, dataset_name, filename)
+  extension <- switch(file_type,
+    "meta"            = ".feather",
+    "metrics"         = ".feather",
+    "synapses"        = ".parquet",
+    "edgelist_simple" = ".feather",
+    "edgelist_split"  = ".feather",
+    "skeletons"       = "",
+    stop("Unknown file_type. Choose: meta, synapses, edgelist_simple, edgelist_split, metrics, skeletons")
+  )
 
-  return(full_path)
+  if (file_type == "skeletons") {
+    if (is.null(space_suffix)) space_suffix <- paste0(dataset_name, "_space")
+    filename <- paste0(dataset_name, "_", space_suffix, "_swc", extension)
+  } else if (dataset_name == "banc") {
+    # BANC uses different naming inside compiled_data/banc_888/
+    filename <- switch(file_type,
+      "meta"            = paste0(dataset, "_meta", extension),
+      "metrics"         = paste0(dataset, "_metrics", extension),
+      "synapses"        = paste0(dataset, "_synapses_v2_enriched", extension),
+      "edgelist_simple" = paste0(dataset, "_edgelist_simple_v3", extension),
+      "edgelist_split"  = paste0(dataset, "_edgelist_split", extension)
+    )
+  } else {
+    filename <- switch(file_type,
+      "meta"            = paste0(dataset, "_meta", extension),
+      "metrics"         = paste0(dataset, "_metrics", extension),
+      "synapses"        = paste0(dataset, "_synapses", extension),
+      "edgelist_simple" = paste0(dataset, "_simple_edgelist", extension),
+      "edgelist_split"  = paste0(dataset, "_split_edgelist", extension)
+    )
+  }
+
+  # New layout: compiled_data/{dataset}_{version}/{filename}
+  file.path(data_root, dataset, filename)
+}
+
+#' Construct path to OBJ mesh directory for a dataset
+#'
+#' BANC's mesh assets are under `region_outlines/` at the bucket root in
+#' Neuroglancer-precomputed format (not OBJ files), so this returns `NULL` for BANC.
+#' Other datasets keep OBJ meshes under `compiled_data/{dataset}_{version}/obj/`.
+#'
+#' @param data_root Root data directory.
+#' @param dataset Dataset name with version (e.g., "fafb_783").
+#' @param subdir One of `"."` (top-level), `"neuropils"`.
+#'
+#' @return Full path to the mesh directory, or `NULL` if not available.
+#'
+#' @export
+construct_obj_path <- function(data_root, dataset, subdir = ".") {
+  dataset_name <- strsplit(dataset, "_")[[1]][1]
+  if (dataset_name == "banc") return(NULL)
+  base <- file.path(data_root, dataset, "obj")
+  if (subdir == "." || is.null(subdir)) base else file.path(base, subdir)
+}
+
+#' Map a region/subset name to its filter logic
+#'
+#' Returns a list describing how to subset a dataset to a brain region. Used by
+#' [subset_by_region()]. The filters mirror
+#' `bancpipeline/banc/share/banc-sjcabs.R` so that subsets reproduce the cut-outs
+#' that previously shipped as separate folders inside each dataset directory.
+#'
+#' @param region One of: `"mushroom_body"`, `"antennal_lobe"`, `"central_complex"`,
+#'   `"optic"`, `"suboesophageal_zone"`, `"front_leg"`, `"abdominal_neuromere"`.
+#'
+#' @return A list with elements `mode` ("metadata" or "synapse"), `pattern` (regex),
+#'   `side` (or NA), `min_synapses` (or NA), and `metadata_extra` (optional regex
+#'   applied to metadata even for synapse-mode subsets, used by mushroom_body).
+#'
+#' @export
+region_filter_spec <- function(region) {
+  region <- tolower(region)
+  switch(region,
+    "mushroom_body" = list(
+      mode = "metadata_with_kc_partners",
+      pattern = "mushroom_body|kenyon_cell|APL|DPM|LHMB1|OA-VPM3",
+      side = "right",
+      min_synapses = 100
+    ),
+    "antennal_lobe" = list(
+      mode = "metadata",
+      pattern = "antennal_lobe|olfactory_receptor|thermosensory_receptor|hygrosensory_receptor|CSD",
+      side = NA, min_synapses = NA
+    ),
+    "central_complex" = list(
+      mode = "metadata",
+      pattern = "central_complex",
+      side = NA, min_synapses = NA
+    ),
+    "optic" = list(
+      mode = "synapse",
+      pattern = "^LO|^LOP|^AME|^ME",
+      side = "right",
+      min_synapses = 100
+    ),
+    "suboesophageal_zone" = list(
+      mode = "synapse",
+      pattern = "^FLA|^SEZ|^GNG|^SAD|^AMMC|^PRW",
+      side = NA,
+      min_synapses = 100
+    ),
+    "front_leg" = list(
+      mode = "synapse",
+      pattern = "^LegNp\\(T1\\)|T1|^ProNM-T1|^LNp_T1",
+      side = "right",
+      min_synapses = 100
+    ),
+    "abdominal_neuromere" = list(
+      mode = "synapse",
+      pattern = "^ANm|^ABDNM|^ADNM",
+      side = NA,
+      min_synapses = 100
+    ),
+    stop("Unknown region: ", region,
+         ". Choose: mushroom_body, antennal_lobe, central_complex, ",
+         "optic, suboesophageal_zone, front_leg, abdominal_neuromere")
+  )
+}
+
+#' Subset a dataset to a named region
+#'
+#' Reproduces the pre-computed region cut-outs that used to ship in
+#' `compiled_data/{dataset}/{region}/`. Filters mirror
+#' `bancpipeline/banc/share/banc-sjcabs.R`.
+#'
+#' Two filter modes:
+#' - **metadata**: regex against `super_class`, `cell_class`, `cell_sub_class`,
+#'   `cell_type` (used for `antennal_lobe`, `central_complex`, `mushroom_body`).
+#' - **synapse**: regex against `neuropil` in the synapse table; neurons need
+#'   ≥`min_synapses` synapses inside matching neuropils (used for `optic`,
+#'   `suboesophageal_zone`, `front_leg`, `abdominal_neuromere`).
+#'
+#' For the synapse mode you must pass `synapses` — typically the dataset's
+#' synapse Parquet/Feather table. For BANC, the synapse table uses
+#' `pre_root_id`/`post_root_id`; for other datasets `pre`/`post`. The function
+#' handles both.
+#'
+#' @param meta Full meta data frame for the dataset.
+#' @param dataset Dataset name with version (e.g., "banc_888"). Used to pick the
+#'   ID column (`{dataset}_id`) and to know which synapse column names to expect.
+#' @param region Region name (see [region_filter_spec()]).
+#' @param edgelist Optional edgelist (required for `mushroom_body` to find KC
+#'   partners; ignored otherwise).
+#' @param synapses Optional synapse data frame (required for synapse-mode regions).
+#'   Must contain `neuropil`, `side` (optional), and pre/post columns.
+#'
+#' @return A list with `ids` (vector of neuron IDs in the subset) and
+#'   `meta` (meta filtered to those IDs).
+#'
+#' @examples
+#' \dontrun{
+#' meta <- arrow::read_feather("gs://.../banc_888/banc_888_meta.feather")
+#' edge <- arrow::read_feather("gs://.../banc_888/banc_888_edgelist_simple_v3.feather")
+#' mb <- subset_by_region(meta, "banc_888", "mushroom_body", edgelist = edge)
+#' message(length(mb$ids), " neurons in MB subset")
+#' }
+#'
+#' @export
+subset_by_region <- function(meta, dataset, region,
+                             edgelist = NULL, synapses = NULL) {
+  spec <- region_filter_spec(region)
+  id_col <- paste0(dataset, "_id")
+  if (!id_col %in% colnames(meta)) {
+    stop("meta does not contain ID column '", id_col, "'")
+  }
+
+  meta_meta_match <- function(m, pat, side = NA) {
+    m_filt <- m %>%
+      dplyr::filter(
+        grepl(pat, super_class)    |
+        grepl(pat, cell_class)     |
+        grepl(pat, cell_sub_class) |
+        grepl(pat, cell_type)
+      )
+    if (!is.na(side)) {
+      m_filt <- m_filt %>% dplyr::filter(side == !!side)
+    }
+    m_filt
+  }
+
+  if (spec$mode == "metadata") {
+    meta_subset <- meta_meta_match(meta, spec$pattern, spec$side)
+
+  } else if (spec$mode == "metadata_with_kc_partners") {
+    if (is.null(edgelist)) {
+      stop("subset_by_region(region = 'mushroom_body') requires `edgelist`.")
+    }
+    kc_ids <- meta %>%
+      dplyr::filter(cell_class == "kenyon_cell")
+    if (!is.na(spec$side)) kc_ids <- kc_ids %>% dplyr::filter(side == !!spec$side)
+    kc_ids <- kc_ids %>% dplyr::pull(.data[[id_col]])
+
+    if (length(kc_ids) == 0) {
+      meta_subset <- meta_meta_match(meta, spec$pattern, spec$side)
+    } else {
+      kc_partners <- edgelist %>%
+        dplyr::filter(pre %in% kc_ids | post %in% kc_ids) %>%
+        dplyr::mutate(pre  = ifelse(pre  %in% kc_ids, "KC", as.character(pre)),
+                      post = ifelse(post %in% kc_ids, "KC", as.character(post))) %>%
+        dplyr::group_by(pre, post) %>%
+        dplyr::summarise(count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::filter(count >= spec$min_synapses)
+      partner_ids <- setdiff(unique(c(kc_partners$pre, kc_partners$post)),
+                             c(as.character(kc_ids), "KC"))
+      meta_subset <- meta %>%
+        dplyr::filter(
+          (is.na(spec$side) | side == spec$side) &
+          (
+            grepl(spec$pattern, super_class)    |
+            grepl(spec$pattern, cell_class)     |
+            grepl(spec$pattern, cell_sub_class) |
+            grepl(spec$pattern, cell_type)      |
+            as.character(.data[[id_col]]) %in% partner_ids
+          )
+        )
+    }
+
+  } else if (spec$mode == "synapse") {
+    if (is.null(synapses)) {
+      stop("subset_by_region(region = '", region,
+           "') requires `synapses` (filter by neuropil).")
+    }
+    pre_col  <- if ("pre_root_id"  %in% colnames(synapses)) "pre_root_id"  else "pre"
+    post_col <- if ("post_root_id" %in% colnames(synapses)) "post_root_id" else "post"
+
+    syns <- synapses %>% dplyr::filter(grepl(spec$pattern, neuropil))
+    if (!is.na(spec$side) && "side" %in% colnames(syns)) {
+      syns <- syns %>% dplyr::filter(side == spec$side)
+    }
+    pre_ids <- syns %>%
+      dplyr::count(.data[[pre_col]]) %>%
+      dplyr::filter(n >= spec$min_synapses) %>%
+      dplyr::pull(.data[[pre_col]])
+    post_ids <- syns %>%
+      dplyr::count(.data[[post_col]]) %>%
+      dplyr::filter(n >= spec$min_synapses) %>%
+      dplyr::pull(.data[[post_col]])
+    chosen_ids <- unique(c(pre_ids, post_ids))
+    meta_subset <- meta %>%
+      dplyr::filter(.data[[id_col]] %in% chosen_ids)
+  }
+
+  ids <- na.omit(unique(meta_subset[[id_col]]))
+  list(ids = ids, meta = meta_subset)
 }
 
 #' List SWC Files in Directory or ZIP Archive

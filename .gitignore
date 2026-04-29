@@ -221,3 +221,5 @@ CLAUDE.md
 *.feather
 googlecloudstorager-auth-key.json
 inst/presentations/sensori_motor_control.pptx
+inst/presentations/sensori_motor_control.pptx
+*.pptx

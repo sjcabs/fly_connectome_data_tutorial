@@ -6,25 +6,25 @@
 
 **Publication:** Scheffer et al. (2020) eLife | **Version:** v1.2.1
 **Scale:** 25,397 neurons | ~27 million synapses | ~4.7 million connections
-**Location:** `gs://brain-and-nerve-cord_exports/processed_data/hemibrain/`
+**Location:** `gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/hemibrain_121/`
 
 ## File Structure
 
 ```
-hemibrain/
-├── hemibrain_121_meta.feather                    # 1.9 MB - Neuron metadata
-├── hemibrain_121_simple_edgelist.feather         # 88 MB - Neuron connectivity
-├── hemibrain_121_split_edgelist.feather          # 145 MB - Compartment connectivity
-├── hemibrain_121_synapses.feather                # 13 KB - Synapse summary
-├── hemibrain_banc_space_swc/                     # Skeletons in BANC space
+compiled_data/hemibrain_121/
+├── hemibrain_121_meta.feather                    # ~1.9 MB - Neuron metadata
+├── hemibrain_121_simple_edgelist.feather         # ~88 MB  - Neuron connectivity
+├── hemibrain_121_split_edgelist.feather          # ~145 MB - Compartment connectivity
+├── hemibrain_121_synapses.feather                # ~13 KB  - Synapse summary
+├── hemibrain_121_synapses.parquet                # ~862 MB - Individual synapses
 ├── hemibrain_hemibrain_raw_space_swc/            # Skeletons in native Hemibrain space
-├── neuropils/                                    # Neuropil mesh files
-├── obj/                                          # Mesh objects
-└── [Curated Subsets:]
-    ├── antennal_lobe/                            # Olfactory circuits
-    ├── central_complex/                          # Navigation circuits
-    └── mushroom_body/                            # Associative memory circuits
+├── hemibrain_banc_space_swc/                     # Skeletons in BANC space
+├── neuropils/                                    # Per-glomerulus / per-neuropil OBJ meshes
+└── obj/                                          # Hemibrain volume OBJ meshes
 ```
+
+> **Note on subsets.** Pre-computed cut-out folders no longer exist — build them in code
+> via `subset_by_region()`.
 
 ---
 
@@ -127,15 +127,16 @@ hemibrain/
 
 ---
 
-## Curated Subsets
+## Region Subsets (build in code)
 
-| Subset | Focus | Key Circuits |
-|--------|-------|--------------|
-| **antennal_lobe** | Olfaction | ORNs, PNs, local neurons |
-| **central_complex** | Navigation | Complete central complex circuits |
-| **mushroom_body** | Memory | Complete mushroom body learning circuits |
+| Subset | Filter |
+|--------|--------|
+| **antennal_lobe** | Regex `antennal_lobe\|olfactory_receptor\|thermosensory_receptor\|hygrosensory_receptor\|CSD` against metadata |
+| **central_complex** | Regex `central_complex` against metadata |
+| **mushroom_body** | Regex `mushroom_body\|kenyon_cell\|APL\|DPM\|LHMB1\|OA-VPM3` + KC partners ≥100 syn, `side == "right"` |
 
-**Note:** Hemibrain provides the most complete view of mushroom body and central complex circuits (more complete than partial coverage in other datasets).
+Use the `subset_by_region()` helper. Hemibrain provides the most complete view of mushroom
+body and central complex circuits (more complete than the partial coverage in other datasets).
 
 ---
 
@@ -154,18 +155,22 @@ hemibrain/
 ```python
 import pandas as pd
 
-meta = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_meta.feather")
-edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_simple_edgelist.feather")
-split_edgelist = pd.read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_split_edgelist.feather")
+base = "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/hemibrain_121"
+meta           = pd.read_feather(f"{base}/hemibrain_121_meta.feather")
+edgelist       = pd.read_feather(f"{base}/hemibrain_121_simple_edgelist.feather")
+split_edgelist = pd.read_feather(f"{base}/hemibrain_121_split_edgelist.feather")
+synapses       = pd.read_parquet(f"{base}/hemibrain_121_synapses.parquet")
 ```
 
 **R:**
 ```r
 library(arrow)
 
-meta <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_meta.feather")
-edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_simple_edgelist.feather")
-split_edgelist <- read_feather("gs://brain-and-nerve-cord_exports/processed_data/hemibrain/hemibrain_121_split_edgelist.feather")
+base <- "gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/hemibrain_121"
+meta           <- read_feather(file.path(base, "hemibrain_121_meta.feather"))
+edgelist       <- read_feather(file.path(base, "hemibrain_121_simple_edgelist.feather"))
+split_edgelist <- read_feather(file.path(base, "hemibrain_121_split_edgelist.feather"))
+synapses       <- read_parquet(file.path(base, "hemibrain_121_synapses.parquet"))
 ```
 
 ---
