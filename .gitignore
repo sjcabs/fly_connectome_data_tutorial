@@ -220,3 +220,4 @@ CLAUDE.md
 # feather
 *.feather
 googlecloudstorager-auth-key.json
+inst/presentations/sensori_motor_control.pptx
