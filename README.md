@@ -479,3 +479,13 @@ More generally, if you use these datasets in your work, please cite the original
 <p align="center">
   <img src="inst/images/flywire_sterling_gallery_dm4.png" alt="FlyWire visualization" width="45%">
 </p>
+
+## Open access (HHMI)
+
+This software was developed with support from the Howard Hughes Medical
+Institute (HHMI). Per HHMI's open-access policy, the associated manuscript
+("Distributed control circuits across a brain-and-cord connectome") and its
+Harvard Dataverse data deposit are released under the
+[Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+This source code remains under its existing OSI-approved open-source license
+— see [`LICENSE`](LICENSE).
