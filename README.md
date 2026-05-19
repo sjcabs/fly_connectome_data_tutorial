@@ -145,7 +145,7 @@ Core packages:
 - **[nat.flybrains](https://github.com/natverse/nat.flybrains)** - Coordinate transforms and template brains
   
 Dataset-specific packages:
-- **[bancr](https://github.com/flyconnectome/bancr)** - BANC-specific client
+- **[bancr](https://github.com/natverse/bancr)** - BANC-specific client
 - **[fafbseg](https://github.com/natverse/fafbseg)** - FlyWire/FAFB-specific tools
 - **[hemibrainr](https://github.com/natverse/hemibrainr)** - Hemibrain-specific tools
 - **[malevnc](https://github.com/natverse/malevnc)** - Male VNC (MANC) specific tools

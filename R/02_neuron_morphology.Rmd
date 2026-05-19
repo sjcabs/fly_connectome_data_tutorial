@@ -188,7 +188,7 @@ In short, a neuron can be represented as a tree graph, in which each node has a 
 
 We could work with high-resolution mesh data (not in our Google bucket), but for most tasks a skeleton suffices and is faster.
 
-If you would like to see how to read in mesh data for the BANC project, which enables nice visualisations, see [here](https://flyconnectome.github.io/bancr/reference/banc_read_neuron_meshes.html).
+If you would like to see how to read in mesh data for the BANC project, which enables nice visualisations, see [here](https://natverse.github.io/bancr/reference/banc_read_neuron_meshes.html).
 
 Let's just take one cell type to start, why not DNg12, known to play a role in the control of the front legs during [grooming](https://www.sciencedirect.com/science/article/pii/S0960982221017425).
 
@@ -576,7 +576,7 @@ In the extended code blocks, you can learn how to 1. transform data yourself bet
 
 ## Extension 1: Template Brain Transforms
 
-If you want to do spatial transforms yourself rather than using pre-transformed skeletons, you will need transform tools. In R, `nat.templatebrains::xform_brain` handles transforms between light-level templates, and [bancr](https://github.com/flyconnectome/bancr) completes the bridge to BANC space. For EM-level templates without R-native registrations (e.g. JRCFIB2022M), we use Python's `navis` via `reticulate`.
+If you want to do spatial transforms yourself rather than using pre-transformed skeletons, you will need transform tools. In R, `nat.templatebrains::xform_brain` handles transforms between light-level templates, and [bancr](https://github.com/natverse/bancr) completes the bridge to BANC space. For EM-level templates without R-native registrations (e.g. JRCFIB2022M), we use Python's `navis` via `reticulate`.
 
 ### Extension 1a: MANC → BANC (R-native transforms)
 
@@ -889,7 +889,7 @@ To calculate axon-dendrite splits yourself, explore the split functions in R'd [
 
 ## Extension 3: Plotting neuronal meshes
 
-We do not have mesh data especially prepared for the course, like we do synapses, connectiivty, meta data and neuron skeletons. However, you can read mesh data directly from the major connectome projects, using R packages [`neuprintr`](https://natverse.org/neuprintr/), [`fafbseg`](https://github.com/natverse/fafbseg) and [`bancr`](https://github.com/flyconnectome/bancr?tab=readme-ov-file). 
+We do not have mesh data especially prepared for the course, like we do synapses, connectiivty, meta data and neuron skeletons. However, you can read mesh data directly from the major connectome projects, using R packages [`neuprintr`](https://natverse.org/neuprintr/), [`fafbseg`](https://github.com/natverse/fafbseg) and [`bancr`](https://github.com/natverse/bancr?tab=readme-ov-file). 
 
 For example, we can read each of the EPG neurons from the FAFB project and plot them in multi-color.
 
