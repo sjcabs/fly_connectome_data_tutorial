@@ -1,0 +1,23 @@
+{
+  "title": "fly_connectome_data_tutorial: Hands-on tutorial for fly connectome data analysis",
+  "description": "Tutorial materials for working with Drosophila connectome datasets at the San Juan Winter School on Connectomics and Brain Simulation (SJCABS, sjcabs.com). Hands-on R + Python walkthrough covering BANC, FAFB, MANC, hemibrain, and maleCNS: loading, analysing, and visualising neuronal morphologies, synaptic connectivity, and network structure.",
+  "license": "CC-BY-4.0",
+  "upload_type": "lesson",
+  "access_right": "open",
+  "creators": [
+    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"},
+    {"name": "Dorkenwald, Sven", "affiliation": "Allen Institute for Brain Science"}
+  ],
+  "contributors": [
+    {"type": "ProjectMember", "name": "Schlegel, Philipp"},
+    {"type": "ProjectMember", "name": "Jefferis, Gregory S. X. E."}
+  ],
+  "keywords": [
+    "connectomics", "Drosophila", "tutorial", "SJCABS",
+    "BANC", "FAFB", "MANC", "hemibrain", "maleCNS",
+    "natverse", "navis", "fly brain"
+  ],
+  "related_identifiers": [
+    {"relation": "isSupplementTo", "identifier": "10.1101/2025.07.31.667571", "resource_type": "publication-preprint"}
+  ]
+}
