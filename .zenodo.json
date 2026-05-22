@@ -5,12 +5,12 @@
   "upload_type": "lesson",
   "access_right": "open",
   "creators": [
-    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"},
-    {"name": "Dorkenwald, Sven", "affiliation": "Allen Institute for Brain Science"}
+    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"}
   ],
   "contributors": [
+    {"type": "ContactPerson", "name": "Dorkenwald, Sven", "orcid": "0000-0003-2352-319X", "affiliation": "Allen Institute for Brain Science"},
     {"type": "ProjectMember", "name": "Schlegel, Philipp"},
-    {"type": "ProjectMember", "name": "Jefferis, Gregory S. X. E."}
+    {"type": "ProjectMember", "name": "Jefferis, Gregory S. X. E.", "orcid": "0000-0002-0587-9355", "affiliation": "MRC Laboratory of Molecular Biology"}
   ],
   "keywords": [
     "connectomics", "Drosophila", "tutorial", "SJCABS",
