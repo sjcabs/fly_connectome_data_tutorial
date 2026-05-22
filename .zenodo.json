@@ -5,19 +5,55 @@
   "upload_type": "lesson",
   "access_right": "open",
   "creators": [
-    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"},
-    {"name": "Dorkenwald, Sven", "orcid": "0000-0003-2352-319X", "affiliation": "Allen Institute for Brain Science"}
+    {
+      "name": "Bates, Alexander Shakeel",
+      "orcid": "0000-0002-1195-0445",
+      "affiliation": "Harvard Medical School"
+    },
+    {
+      "name": "Dorkenwald, Sven",
+      "orcid": "0000-0003-2352-319X",
+      "affiliation": "Allen Institute for Brain Science"
+    },
+    {
+      "name": "Jefferis, Gregory S. X. E.",
+      "orcid": "0000-0002-0587-9355",
+      "affiliation": "MRC Laboratory of Molecular Biology"
+    },
+    {
+      "name": "Schlegel, Philipp"
+    }
   ],
-  "contributors": [
-    {"type": "ProjectMember", "name": "Schlegel, Philipp"},
-    {"type": "ProjectMember", "name": "Jefferis, Gregory S. X. E.", "orcid": "0000-0002-0587-9355", "affiliation": "MRC Laboratory of Molecular Biology"}
+  "grants": [
+    {
+      "id": "10.13039/100010269::222782/Z/21/Z"
+    },
+    {
+      "id": "10.13039/100000001::2014862"
+    },
+    {
+      "id": "10.13039/501100000265::MC_EX_MR/T046279/1"
+    }
   ],
   "keywords": [
-    "connectomics", "Drosophila", "tutorial", "SJCABS",
-    "BANC", "FAFB", "MANC", "hemibrain", "maleCNS",
-    "natverse", "navis", "fly brain"
+    "connectomics",
+    "Drosophila",
+    "tutorial",
+    "SJCABS",
+    "BANC",
+    "FAFB",
+    "MANC",
+    "hemibrain",
+    "maleCNS",
+    "natverse",
+    "navis",
+    "fly brain"
   ],
   "related_identifiers": [
-    {"relation": "isSupplementTo", "identifier": "10.1101/2025.07.31.667571", "resource_type": "publication-preprint"}
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.1101/2025.07.31.667571",
+      "resource_type": "publication-preprint"
+    }
   ]
 }
