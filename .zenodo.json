@@ -52,6 +52,11 @@
   "related_identifiers": [
     {
       "relation": "isSupplementTo",
+      "identifier": "10.1038/s41586-026-10735-w",
+      "resource_type": "publication-article"
+    },
+    {
+      "relation": "isSupplementTo",
       "identifier": "10.1101/2025.07.31.667571",
       "resource_type": "publication-preprint"
     }
